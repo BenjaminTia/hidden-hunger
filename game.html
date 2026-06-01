@@ -6,67 +6,79 @@
 <title>Hidden Hunger</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:#08080a;color:#c0c0c8;font-family:monospace;height:100vh;display:flex;justify-content:center;align-items:center;overflow:hidden}
-#game{width:98vw;max-width:1100px;min-height:90vh;border:1px solid #1a1a22;background:#0c0c10;display:flex;flex-direction:column;position:relative}
-#top{display:flex;justify-content:space-between;align-items:center;padding:10px 20px;background:#0a0a0e;border-bottom:1px solid #1a1a22;font-size:14px;flex-shrink:0}
-#top .day{color:#666}
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+body{background:#07070a;color:#c8c8d0;font-family:'Inter',sans-serif;height:100vh;display:flex;justify-content:center;align-items:center;overflow:hidden}
+#game{width:96vw;max-width:1100px;min-height:92vh;border:1px solid #1c1c24;background:#0c0c12;display:flex;flex-direction:column;position:relative;border-radius:10px;box-shadow:0 12px 48px rgba(0,0,0,0.6);overflow:hidden}
+#top{display:flex;justify-content:space-between;align-items:center;padding:12px 24px;background:#0a0a0f;border-bottom:1px solid #1a1a22;font-size:13px;flex-shrink:0;letter-spacing:0.3px}
+#top .day{color:#666;font-weight:500}
 #top .time{color:#888}
-#top .act{color:#5a7a9a;font-size:12px;font-style:italic;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#stats{display:grid;grid-template-columns:1fr 1fr;gap:4px 20px;padding:8px 20px;background:#0e0e12;border-bottom:1px solid #1a1a22;font-size:13px;flex-shrink:0}
-.stat{display:flex;justify-content:space-between;align-items:center;gap:6px}
-.stat .lbl{color:#555;width:62px}
-.bar-bg{width:130px;height:8px;background:#181820;border:1px solid #222}
-.bar-fill{height:100%;transition:width .3s}
-.stat .val{color:#777;width:28px;text-align:right;font-weight:bold}
-#scene{flex:1;padding:20px 20px;overflow-y:auto}
-#scene h3{color:#9a9aaa;font-size:16px;font-weight:normal;margin-bottom:8px}
-#scene .desc{color:#bbb;font-size:14px;line-height:1.8;margin-bottom:10px;white-space:pre-wrap}
-#scene .thought{color:#666;font-size:12px;font-style:italic;margin-bottom:12px}
-#scene .note{color:#5a7a5a;font-size:12px;border-left:2px solid #3a5a3a;padding:4px 10px;margin-bottom:10px;background:#0a100a}
-#choices{display:flex;flex-direction:column;gap:4px;padding:6px 20px 16px;flex-shrink:0}
-#choices button{background:#12121a;color:#aaa;border:1px solid #222;padding:10px 14px;font-family:monospace;font-size:13px;cursor:pointer;text-align:left;transition:.15s}
-#choices button:hover{background:#1a1a26;color:#ddd;border-color:#3a3a4a}
-#choices button:disabled{opacity:.3;cursor:default}
-#log{border-top:1px solid #1a1a22;padding:5px 20px;font-size:11px;color:#555;max-height:70px;overflow-y:auto;flex-shrink:0}
-#log div{margin:2px 0}
-#footer{display:flex;justify-content:space-between;padding:5px 20px 8px;font-size:12px;color:#444;flex-shrink:0}
+#top .time::before{content:'\25CF ';color:#3a5a3a}
+#top .act{color:#5a7a9a;font-size:12px;font-style:italic;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:'JetBrains Mono',monospace}
+#stats{display:grid;grid-template-columns:1fr 1fr;gap:5px 24px;padding:10px 24px;background:#0d0d14;border-bottom:1px solid #1a1a22;font-size:12px;flex-shrink:0}
+.stat{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:2px 0}
+.stat .lbl{color:#555;width:50px;font-weight:500;letter-spacing:0.5px}
+.bar-bg{width:130px;height:6px;background:#181820;border-radius:3px;overflow:hidden}
+.bar-fill{height:100%;transition:width .4s ease;border-radius:3px}
+.stat .val{color:#888;width:30px;text-align:right;font-weight:600;font-family:'JetBrains Mono',monospace;font-size:11px}
+#scene{flex:1;padding:24px 28px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#1a1a22 transparent}
+#scene::-webkit-scrollbar{width:4px}
+#scene::-webkit-scrollbar-thumb{background:#1a1a22;border-radius:2px}
+#scene h3{color:#9a9aaa;font-size:15px;font-weight:500;margin-bottom:10px;letter-spacing:0.5px}
+#scene .desc{color:#c0c0c8;font-size:14px;line-height:1.9;margin-bottom:12px;white-space:pre-wrap}
+#scene .thought{color:#666;font-size:12px;font-style:italic;margin-bottom:14px;border-left:2px solid #2a2a32;padding:6px 14px;background:#0a0a10}
+#scene .note{color:#5a8a5a;font-size:12px;border-left:2px solid #3a5a3a;padding:5px 12px;margin-bottom:12px;background:#0a120a;border-radius:0 4px 4px 0}
+#choices{display:flex;flex-direction:column;gap:4px;padding:8px 24px 18px;flex-shrink:0}
+#choices button{background:#11111a;color:#aaa;border:1px solid #222;padding:11px 16px;font-family:'Inter',sans-serif;font-size:13px;cursor:pointer;text-align:left;transition:all .15s;border-radius:5px;letter-spacing:0.2px}
+#choices button:hover{background:#1a1a28;color:#ddd;border-color:#3a3a4e;transform:translateX(2px)}
+#choices button:disabled{opacity:.3;cursor:default;transform:none}
+#log{border-top:1px solid #1a1a22;padding:6px 24px;font-size:11px;color:#555;max-height:65px;overflow-y:auto;flex-shrink:0;scrollbar-width:thin;scrollbar-color:#1a1a22 transparent}
+#log::-webkit-scrollbar{width:4px}
+#log::-webkit-scrollbar-thumb{background:#1a1a22;border-radius:2px}
+#log div{margin:2px 0;font-family:'JetBrains Mono',monospace;font-size:11px}
+#footer{display:flex;justify-content:space-between;padding:6px 24px 10px;font-size:11px;color:#444;flex-shrink:0;border-top:1px solid #12121a}
 
 /* Title screen */
-#title{display:none;position:absolute;top:0;left:0;width:100%;height:100%;background:#08080a;z-index:100;flex-direction:column;justify-content:center;align-items:center;padding:40px;text-align:center}
+#title{display:none;position:absolute;top:0;left:0;width:100%;height:100%;background:radial-gradient(ellipse at center,#0c0c14 0%,#07070a 100%);z-index:100;flex-direction:column;justify-content:center;align-items:center;padding:40px;text-align:center}
 #title.show{display:flex}
-#title h1{color:#7a7a8a;font-size:32px;letter-spacing:6px;margin-bottom:8px}
-#title h2{color:#4a4a5a;font-size:14px;font-weight:normal;margin-bottom:30px}
-#title .disclaimer{color:#5a5a5a;font-size:11px;max-width:600px;line-height:1.6;margin-bottom:20px;border:1px solid #1a1a1a;padding:14px 20px}
-#title .context{color:#8a8a9a;font-size:13px;max-width:600px;line-height:1.7;margin-bottom:28px}
-#title .start{background:#1a1a26;border:1px solid #3a3a4a;color:#aaa;padding:14px 48px;font-family:monospace;font-size:16px;cursor:pointer;transition:.2s}
-#title .start:hover{background:#2a2a3a;color:#ddd;border-color:#5a5a7a}
-#title .endings{color:#4a4a5a;font-size:11px;margin-top:16px}
+#title .logo{font-family:'JetBrains Mono',monospace;font-size:40px;font-weight:700;color:#8a8a9a;letter-spacing:8px;margin-bottom:4px;text-transform:uppercase}
+#title .logo span{color:#5a7a9a}
+#title .subtitle{color:#4a4a5a;font-size:13px;font-weight:400;margin-bottom:32px;letter-spacing:3px;text-transform:uppercase}
+#title .disclaimer{color:#5a5a5a;font-size:11px;max-width:620px;line-height:1.7;margin-bottom:22px;border:1px solid #1a1a1a;padding:14px 22px;border-radius:6px;background:#0a0a0e;text-align:left}
+#title .context{color:#9a9aaa;font-size:13px;max-width:620px;line-height:1.8;margin-bottom:30px;text-align:left;padding:0 10px}
+#title .context em{color:#6a6a7a;font-style:italic}
+#title .start{background:linear-gradient(135deg,#1a1a28,#14141e);border:1px solid #3a3a4e;color:#b0b0c0;padding:14px 56px;font-family:'Inter',sans-serif;font-size:15px;font-weight:500;cursor:pointer;transition:all .25s;border-radius:6px;letter-spacing:1px;text-transform:uppercase}
+#title .start:hover{background:linear-gradient(135deg,#22223a,#1a1a2a);border-color:#5a5a7a;color:#ddd;transform:translateY(-1px);box-shadow:0 4px 20px rgba(60,60,90,0.15)}
+#title .endings{color:#4a4a5a;font-size:11px;margin-top:18px;letter-spacing:0.5px}
+#title .endings strong{color:#6a6a7a}
 
-#scene .divider{color:#333;text-align:center;margin:10px 0;font-size:11px}
-#scene .flag-note{color:#7a7;font-size:12px;border-left:2px solid #3a5a3a;padding:4px 10px;margin:8px 0;background:#0a100a}
+#scene .divider{color:#333;text-align:center;margin:14px 0;font-size:10px;letter-spacing:2px;text-transform:uppercase}
+#scene .flag-note{color:#7a7;font-size:12px;border-left:2px solid #3a5a3a;padding:5px 12px;margin:10px 0;background:#0a120a;border-radius:0 4px 4px 0}
 
-.end h3{color:#c44!important}
-.end .desc{color:#c99!important}
-.win h3{color:#4c8!important}
+.end h3{color:#c44!important;font-weight:600!important}
+.end .desc{color:#d99!important}
+.win h3{color:#4c8!important;font-weight:600!important}
 .win .desc{color:#8c8!important}
+
+#scene .stat-change{font-size:12px;color:#666;margin-top:8px;font-family:'JetBrains Mono',monospace}
+#scene .stat-change .pos{color:#6a6}
+#scene .stat-change .neg{color:#c66}
 </style>
 </head>
 <body>
 <div id="game">
 <div id="title" class="show">
-<h1>HIDDEN HUNGER</h1>
-<h2>A Narrative Survival Game</h2>
+<div class="logo"><span>H</span>IDDEN <span>H</span>UNGER</div>
+<div class="subtitle">A Narrative Survival Game</div>
 <div class="disclaimer">
 This is a work of fiction. Names, characters, places, and incidents are either products of the imagination or used fictitiously. Any resemblance to actual persons, living or dead, events, or locales is entirely coincidental. The story explores themes of family dysfunction, manipulation, and survival. Reader discretion is advised.
 </div>
 <div class="context">
-You live with your aunt and father. Every day is a battle — for food, for privacy, for your sanity.
-Your aunt controls everything you eat, wear, and do. Your father won't stand up for you.
-The only peace you get is at night, when she's finally asleep.<br><br>
+<em>You live with your aunt and father. Every day is a battle — for food, for privacy, for your sanity.</em><br><br>
+Your aunt controls everything you eat, wear, and do. Your father won't stand up for you. The only peace you get is at night, when she's finally asleep.<br><br>
 Hide your food. Manage your trash. Stay out of her way. Find a way out before she breaks you completely.
 </div>
-<button class="start" onclick="startGame()">BEGIN</button>
-<div class="endings">20+ endings | 100+ unique scenes</div>
+<button class="start" onclick="startGame()">Enter the House</button>
+<div class="endings"><strong>24 endings</strong> &middot; <strong>22 events</strong> &middot; Single-file HTML</div>
 </div>
 <div id="top"><span class="day" id="dayD">Day 1</span><span class="time" id="timeD">Night</span><span class="act" id="actD"></span></div>
 <div id="stats">
