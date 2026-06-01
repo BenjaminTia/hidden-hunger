@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hidden Hunger</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#08080a;color:#c0c0c8;font-family:monospace;height:100vh;display:flex;justify-content:center;align-items:center;overflow:hidden}
+#game{width:98vw;max-width:1100px;min-height:90vh;border:1px solid #1a1a22;background:#0c0c10;display:flex;flex-direction:column;position:relative}
+#top{display:flex;justify-content:space-between;align-items:center;padding:10px 20px;background:#0a0a0e;border-bottom:1px solid #1a1a22;font-size:14px;flex-shrink:0}
+#top .day{color:#666}
+#top .time{color:#888}
+#top .act{color:#5a7a9a;font-size:12px;font-style:italic;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#stats{display:grid;grid-template-columns:1fr 1fr;gap:4px 20px;padding:8px 20px;background:#0e0e12;border-bottom:1px solid #1a1a22;font-size:13px;flex-shrink:0}
+.stat{display:flex;justify-content:space-between;align-items:center;gap:6px}
+.stat .lbl{color:#555;width:62px}
+.bar-bg{width:130px;height:8px;background:#181820;border:1px solid #222}
+.bar-fill{height:100%;transition:width .3s}
+.stat .val{color:#777;width:28px;text-align:right;font-weight:bold}
+#scene{flex:1;padding:20px 20px;overflow-y:auto}
+#scene h3{color:#9a9aaa;font-size:16px;font-weight:normal;margin-bottom:8px}
+#scene .desc{color:#bbb;font-size:14px;line-height:1.8;margin-bottom:10px;white-space:pre-wrap}
+#scene .thought{color:#666;font-size:12px;font-style:italic;margin-bottom:12px}
+#scene .note{color:#5a7a5a;font-size:12px;border-left:2px solid #3a5a3a;padding:4px 10px;margin-bottom:10px;background:#0a100a}
+#choices{display:flex;flex-direction:column;gap:4px;padding:6px 20px 16px;flex-shrink:0}
+#choices button{background:#12121a;color:#aaa;border:1px solid #222;padding:10px 14px;font-family:monospace;font-size:13px;cursor:pointer;text-align:left;transition:.15s}
+#choices button:hover{background:#1a1a26;color:#ddd;border-color:#3a3a4a}
+#choices button:disabled{opacity:.3;cursor:default}
+#log{border-top:1px solid #1a1a22;padding:5px 20px;font-size:11px;color:#555;max-height:70px;overflow-y:auto;flex-shrink:0}
+#log div{margin:2px 0}
+#footer{display:flex;justify-content:space-between;padding:5px 20px 8px;font-size:12px;color:#444;flex-shrink:0}
+
+/* Title screen */
+#title{display:none;position:absolute;top:0;left:0;width:100%;height:100%;background:#08080a;z-index:100;flex-direction:column;justify-content:center;align-items:center;padding:40px;text-align:center}
+#title.show{display:flex}
+#title h1{color:#7a7a8a;font-size:32px;letter-spacing:6px;margin-bottom:8px}
+#title h2{color:#4a4a5a;font-size:14px;font-weight:normal;margin-bottom:30px}
+#title .disclaimer{color:#5a5a5a;font-size:11px;max-width:600px;line-height:1.6;margin-bottom:20px;border:1px solid #1a1a1a;padding:14px 20px}
+#title .context{color:#8a8a9a;font-size:13px;max-width:600px;line-height:1.7;margin-bottom:28px}
+#title .start{background:#1a1a26;border:1px solid #3a3a4a;color:#aaa;padding:14px 48px;font-family:monospace;font-size:16px;cursor:pointer;transition:.2s}
+#title .start:hover{background:#2a2a3a;color:#ddd;border-color:#5a5a7a}
+#title .endings{color:#4a4a5a;font-size:11px;margin-top:16px}
+
+#scene .divider{color:#333;text-align:center;margin:10px 0;font-size:11px}
+#scene .flag-note{color:#7a7;font-size:12px;border-left:2px solid #3a5a3a;padding:4px 10px;margin:8px 0;background:#0a100a}
+
+.end h3{color:#c44!important}
+.end .desc{color:#c99!important}
+.win h3{color:#4c8!important}
+.win .desc{color:#8c8!important}
+</style>
+</head>
+<body>
+<div id="game">
+<div id="title" class="show">
+<h1>HIDDEN HUNGER</h1>
+<h2>A Narrative Survival Game</h2>
+<div class="disclaimer">
+This is a work of fiction. Names, characters, places, and incidents are either products of the imagination or used fictitiously. Any resemblance to actual persons, living or dead, events, or locales is entirely coincidental. The story explores themes of family dysfunction, manipulation, and survival. Reader discretion is advised.
+</div>
+<div class="context">
+You live with your aunt and father. Every day is a battle — for food, for privacy, for your sanity.
+Your aunt controls everything you eat, wear, and do. Your father won't stand up for you.
+The only peace you get is at night, when she's finally asleep.<br><br>
+Hide your food. Manage your trash. Stay out of her way. Find a way out before she breaks you completely.
+</div>
+<button class="start" onclick="startGame()">BEGIN</button>
+<div class="endings">20+ endings | 100+ unique scenes</div>
+</div>
+<div id="top"><span class="day" id="dayD">Day 1</span><span class="time" id="timeD">Night</span><span class="act" id="actD"></span></div>
+<div id="stats">
+<div class="stat"><span class="lbl">H</span><div class="bar-bg"><div id="hunger" class="bar-fill" style="width:80%;background:#5a7a3a"></div></div><span class="val" id="hungerV">80</span></div>
+<div class="stat"><span class="lbl">B</span><div class="bar-bg"><div id="bladder" class="bar-fill" style="width:10%;background:#3a6a8a"></div></div><span class="val" id="bladderV">10</span></div>
+<div class="stat"><span class="lbl">HP</span><div class="bar-bg"><div id="health" class="bar-fill" style="width:70%;background:#6a3a3a"></div></div><span class="val" id="healthV">70</span></div>
+<div class="stat"><span class="lbl">Sus</span><div class="bar-bg"><div id="suspicion" class="bar-fill" style="width:0%;background:#8a3a3a"></div></div><span class="val" id="suspicionV">0</span></div>
+<div class="stat"><span class="lbl">$</span><span style="color:#7a7" id="moneyV">50</span></div>
+<div class="stat"><span class="lbl">Str</span><span style="color:#77a" id="strengthV">10</span></div>
+<div class="stat"><span class="lbl">Stash</span><span style="color:#7a7" id="stashV">0</span></div>
+<div class="stat"><span class="lbl">Trash</span><span style="color:#a77" id="trashV">0</span></div>
+</div>
+<div id="scene"></div>
+<div id="choices"></div>
+<div id="log"></div>
+<div id="footer"><span id="auntState"></span><span id="evCount">0 events</span></div>
+</div>
+<script>
+let G = {};
+function newGame() {
+    G = {
+        hunger: 80, bladder: 10, health: 70, suspicion: 0, money: 50, strength: 10, trash: 0,
+        day: 1, time: 'night', phase: 'title', flags: {}, history: [],
+        invFood: 0, ateToday: false, evCount: 0, activity: '',
+        trashSpot: '', disposedToday: false
+    };
+}
+const HOURS = { morning:'~7AM', afternoon:'~1PM', evening:'~6PM', night:'~11PM' };
+const TRASH_RISK = { underBed:0.25, inCloset:0.2, behindDesk:0.12, inBag:0.4, underMattress:0.2, outside:0 };
+
+function trashCheck() {
+    if(G.trash<=0 || G.time!=='morning') return;
+    const risk = TRASH_RISK[G.trashSpot] || 0.3;
+    const dailyChance = Math.min(0.8, risk * G.trash * 1.2);
+    if(Math.random() < dailyChance) {
+        G.suspicion = Math.min(100, G.suspicion + 15 * G.trash);
+        log('\u26A0 She found the trash! Suspicion skyrockets.','w');
+        G.trash = 0;
+        G.trashSpot = '';
+    }
+}
+
+const END = [
+    { id:1, name:'Starvation', check:()=>G.hunger<=0, text:'Your body gave out. The hunger won. She probably blamed it on you. She always does.' },
+    { id:2, name:'Bladder Infection', check:()=>G.bladder>=100, text:'You held it in for too long. The infection spread. She called it your fault for not "just going."' },
+    { id:3, name:'Broken Body', check:()=>G.health<=0, text:'Too many days of neglect. Your body couldn\'t take anymore. She cried at the funeral. Made it about her.' },
+    { id:4, name:'Cast Out', check:()=>G.suspicion>=100, text:'"You\'re out." She finally said it. Years of control ended with two words. You stood on the street with your bag. Nowhere to go.' },
+    { id:5, name:'Runaway', check:()=>G.flags.runaway, text:'You left in the middle of the night. No note. No goodbye. You didn\'t look back. The streetlights guided you out. Freedom tasted like cold air.' },
+    { id:6, name:'Aunt Arrested', check:()=>G.flags.auntArrested, text:'The evidence was enough. They came for her. You watched from the window as they led her away. Justice took years but it came.' },
+    { id:7, name:'Scholarship Escape', check:()=>G.flags.scholarship, text:'The acceptance letter came. Full ride. Far away. You showed it to her. She said nothing. You packed your bags and left the same day.' },
+    { id:8, name:'Strong Enough', check:()=>G.strength>=40&&G.flags.gymConsistent, text:'You got strong. Gym every other day. Your body became yours again. The day you could lift more than she weighed, you knew you could leave.' },
+    { id:9, name:'Independent', check:()=>G.money>=500, text:'You saved every dollar. $500. Enough for first and last on a tiny studio. Your own door. Your own lock. Your own rules.' },
+    { id:10, name:'Someone Believed', check:()=>G.flags.someoneHelped, text:'A teacher noticed the signs. Made a call. A social worker came. Someone finally believed you. The system moved slow, but it moved.' },
+    { id:11, name:'Survived 100 Days', check:()=>G.day>=100, text:'100 days. Not thriving. Not happy. But alive. Every day you survived her. That counts for something. That counts for everything.' },
+    { id:12, name:'Self-Sufficient', check:()=>G.flags.selfSufficient, text:'You learned to cook. Really cook. Better than she ever could. The day you made a meal from scratch and didn\'t need her, you were free.' },
+    { id:13, name:'The Truth Out', check:()=>G.flags.truthOut, text:'You recorded everything. The shouting. The gaslighting. The contradictions. You released it all. The internet saw. The world saw. She couldn\'t deny it anymore.' },
+    { id:14, name:'New Family', check:()=>G.flags.foundFamily, text:'Not blood. But better. A friend\'s family took you in. They didn\'t check your bag. They didn\'t leave your door open. They called you their kid.' },
+    { id:15, name:'Peace at Last', check:()=>G.day>=60&&G.hunger>60&&G.health>60, text:'You found a rhythm. A way to live around her. Not war, not happiness — but peace. Some days that\'s enough.' },
+    { id:16, name:'Therapy Journey', check:()=>G.flags.therapy, text:'You started therapy. Unpacking years of gaslighting. The therapist said, "That\'s abuse." You cried when you heard it spoken out loud.' },
+    { id:17, name:'Confrontation', check:()=>G.flags.confronted, text:'You said everything. All of it. She had no answer. For once, she was silent. You walked away and left her standing there, mouth open.' },
+    { id:18, name:'Friends Saved Me', check:()=>G.flags.friendsHelp, text:'Your friends knew something was wrong. They showed up. They didn\'t ask permission. They got you out. Real family is chosen.' },
+    { id:19, name:'The Door Closes', check:()=>G.flags.movedOut, text:'You walked out with your bags. She watched from the doorway. She didn\'t say goodbye. You didn\'t look back. The door closed behind you.' },
+    { id:20, name:'Internet Famous', check:()=>G.flags.contentCreator, text:'Your videos about surviving a toxic home went viral. Millions watched. Thousands reached out. You weren\'t alone. You were never alone.' },
+    { id:21, name:'The Act — Caught', check:()=>G.flags.killedAuntCaught, text:'You snapped. One night, you couldn\'t take anymore. The police came. The handcuffs were cold. In the cell, you felt nothing. Not regret. Not relief. Just... nothing.' },
+    { id:22, name:'The Act — Freedom', check:()=>G.flags.killedAuntFree, text:'You snapped. One night, you ended it. You walked out. No one saw. No one knows. You changed your name. Started over. But some nights, you still hear her voice.' },
+    { id:23, name:'Self-Defense', check:()=>G.flags.selfDefense, text:'She came at you. Really came at you. You reacted. The law called it self-defense. You\'re free but you carry it with you every day. She made you into this.' },
+    { id:24, name:'Cover-Up', check:()=>G.flags.killedAuntCover, text:'You tried to hide it. The clean-up. The lies. The alibi. You got away with it. But the guilt is worse than prison. You see her face every time you close your eyes.' },
+];
+function checkEnd() {
+    for(const e of END) if(e.check()) { G.phase='ended'; showEnd(e.name,e.text); return true; }
+    return false;
+}
+const EV = [];
+function ev(id, time, cond, title, text, thought, choices) {
+    EV.push({id,time,cond,title,text,thought,choices});
+}
+function pickEv() {
+    const pool = EV.filter(e => e.time===G.time && (!e.cond||e.cond()));
+    if(!pool.length) { advanceTime(); return pickEv(); }
+    const e = pool[Math.floor(Math.random()*pool.length)];
+    G.history.push(e.id);
+    return e;
+}
+function advanceTime() {
+    const map={morning:'afternoon',afternoon:'evening',evening:'night',night:'morning'};
+    G.time=map[G.time];
+    if(G.time==='morning') { G.day++; G.ateToday=false; G.disposedToday=false; decay(); trashCheck(); }
+    updateUI();
+}
+function decay() {
+    G.hunger=Math.max(0,G.hunger-14); G.bladder=Math.min(100,G.bladder+10);
+    if(G.hunger<=0) G.health=Math.max(0,G.health-10);
+    if(G.bladder>=100) G.health=Math.max(0,G.health-8);
+    if(!G.ateToday) G.health=Math.max(0,G.health-5);
+    if(G.trash>=5) G.health=Math.max(0,G.health-2); // smells attract attention
+}
+let _curChoices = null;
+function resolve(n) {
+    if(G.phase!=='play'||!_curChoices||n>=_curChoices.length) return;
+    const ch = _curChoices[n];
+    G.evCount++;
+    const roll=Math.random(), odds=ch.odds||100, ok=roll<odds/100;
+    if(ok) {
+        apply(ch.changes);
+        if(ch.note) log('\u2139 '+ch.note,'i');
+        if(ch.setFlags) ch.setFlags.forEach(f=>G.flags[f]=true);
+        if(ch.ending) { G.phase='ended'; showEnd(ch.ending,ch.result||ch.text); return; }
+        if(ch.nextText) { G.activity = ch.nextAct || G.activity; showScene(ch.nextText, ch.nextChoices); return; }
+        if(ch.text) log('\u2192 '+ch.text,'s');
+    } else {
+        const f=ch.fail||ch;
+        apply(f.failChanges||f.changes);
+        if(f.note) log('\u2139 '+f.note,'i');
+        if(f.setFlags) f.setFlags.forEach(f=>G.flags[f]=true);
+        if(f.nextText) { G.activity = f.nextAct || G.activity; showScene(f.nextText, f.nextChoices); return; }
+        if(f.failText) log('\u2717 '+f.failText,'w');
+    }
+    updateUI();
+    if(checkEnd()) return;
+    advanceTime();
+    setTimeout(nextEv,200);
+}
+function apply(c) {
+    if(!c) return;
+    ['hunger','bladder','health','money','suspicion','strength'].forEach(s=>{
+        if(c[s]!==undefined) {
+            if(s==='money') G[s]=Math.max(0,G[s]+c[s]);
+            else if(s==='strength') G[s]=Math.max(1,G[s]+c[s]);
+            else G[s]=Math.max(0,Math.min(100,G[s]+c[s]));
+        }
+    });
+    if(c.food) G.invFood+=c.food;
+    if(c.ateToday!==undefined) G.ateToday=c.ateToday;
+    if(c.trash) G.trash = Math.max(0, Math.min(10, G.trash + c.trash));
+    if(c.trashSpot !== undefined) G.trashSpot = c.trashSpot;
+    if(c.disposedToday !== undefined) G.disposedToday = c.disposedToday;
+}
+function showScene(text, choices) {
+    const el=document.getElementById('scene');
+    el.innerHTML='<div class="desc">'+text+'</div>';
+    const ch=document.getElementById('choices'); ch.innerHTML='';
+    _curChoices = choices;
+    if(choices) choices.forEach((c,i)=>{
+        const b=document.createElement('button');
+        b.textContent=(i+1)+'. '+c.text+(c.odds&&c.odds<100?' ('+c.odds+'%)':'');
+        b.onclick=()=>resolve(i);
+        ch.appendChild(b);
+    });
+    updateUI();
+}
+function showEnd(name, text) {
+    document.getElementById('title').classList.remove('show');
+    const el=document.getElementById('scene'); el.className='end';
+    el.innerHTML='<h3>'+name+'</h3><div class="desc">'+text+'</div>';
+    const ch=document.getElementById('choices'); ch.innerHTML='';
+    const b=document.createElement('button'); b.textContent='New Game';
+    b.onclick=()=>{G.phase='title';document.getElementById('title').classList.add('show')};
+    ch.appendChild(b);
+}
+function nextEv() {
+    if(G.phase!=='play') return;
+    const e=pickEv();
+    if(!e) { advanceTime(); nextEv(); return; }
+    G.activity = e.activity || '';
+    const el=document.getElementById('scene'); el.className='';
+    el.innerHTML='<h3>'+e.title+'</h3><div class="desc">'+e.text+'</div>'+(e.thought?'<div class="thought">'+e.thought+'</div>':'');
+    const ch=document.getElementById('choices'); ch.innerHTML='';
+    _curChoices = e.choices;
+    e.choices.forEach((c,i)=>{
+        const b=document.createElement('button');
+        b.textContent=(i+1)+'. '+c.text+(c.odds&&c.odds<100?' ('+c.odds+'%)':'');
+        b.onclick=()=>resolve(i);
+        ch.appendChild(b);
+    });
+    updateUI();
+}
+function log(t,type) {
+    const el=document.getElementById('log');
+    const d=document.createElement('div');
+    d.style.color=type==='w'?'#c66':(type==='s'?'#6c6':(type==='i'?'#6a6':'#666'));
+    d.textContent='> '+t;
+    el.appendChild(d); el.scrollTop=el.scrollHeight;
+    while(el.children.length>25)el.removeChild(el.firstChild);
+}
+function updateUI() {
+    const t=G.time.charAt(0).toUpperCase()+G.time.slice(1);
+    document.getElementById('dayD').textContent='Day '+G.day;
+    document.getElementById('timeD').textContent=t+' '+(HOURS[G.time]||'');
+    document.getElementById('actD').textContent=G.activity;
+    document.getElementById('hunger').style.width=G.hunger+'%';
+    document.getElementById('hungerV').textContent=Math.round(G.hunger);
+    document.getElementById('bladder').style.width=G.bladder+'%';
+    document.getElementById('bladderV').textContent=Math.round(G.bladder);
+    document.getElementById('health').style.width=G.health+'%';
+    document.getElementById('healthV').textContent=Math.round(G.health);
+    document.getElementById('suspicion').style.width=G.suspicion+'%';
+    document.getElementById('suspicionV').textContent=Math.round(G.suspicion);
+    document.getElementById('moneyV').textContent='$'+Math.round(G.money);
+document.getElementById('strengthV').textContent=Math.round(G.strength);
+document.getElementById('stashV').textContent=Math.round(G.invFood);
+document.getElementById('trashV').textContent=G.trash+(G.trashSpot?' ('+G.trashSpot+')':'');
+    document.getElementById('evCount').textContent=G.evCount+' events';
+    const a=G.time==='night'?'Aunt is asleep':(G.suspicion>60?'Watching everything':'In her room');
+    document.getElementById('auntState').textContent=a;
+}
+function startGame() {
+    document.getElementById('title').classList.remove('show');
+    newGame(); G.phase='play';
+    updateUI();
+    log('The house is dark. She\'s asleep. You\'re awake.','s');
+    log('Survive 100 days. Find an ending.','s');
+    nextEv();
+}
+// Pre-init
+newGame();
+
+// ===================================================================
+// NARRATIVE EVENTS — Multi-step chains with proper pacing
+// ===================================================================
+
+// ======================== NIGHT ========================
+
+ev('nightKitchen','night',null,'Night — The House is Quiet',
+'Past midnight. The only time the house belongs to you.\n\nHer snoring echoes from her room — door wide open, as always. Your stomach twists with hunger. The kitchen is a battlefield you have to cross. Every floorboard is a landmine you\'ve memorized.\n\nYou need food. You need to survive. What do you do?',
+'"I know which floorboards creak. I know the exact pressure to open the fridge without a sound. I\'ve become a ghost in my own home."',
+[
+    {text:'Sneak to the kitchen — you\'re hungry enough',odds:80,changes:{},nextAct:'Sneaking to the kitchen',
+        nextText:'You slip out of bed. Barefoot. The floor is cold. You pause at your door — listen. Her snoring is steady. You move.\n\nPast the bathroom. Past her room. The snoring gets louder as you pass her door. You can see her silhouette in the dark. You look away and keep moving.\n\nThe kitchen. Dark. Silent. The fridge hums. The cabinets wait. You made it.',
+        nextChoices:[
+            {text:'Open the fridge — check for leftovers',odds:70,changes:{},nextAct:'Checking the fridge',
+                fail:{failText:'The fridge handle slipped. You caught it but the suction POP was loud in the silence. You froze for a full minute.',failChanges:{suspicion:5}},
+                nextText:'You pull the door open slowly. Cold air and dim light spill out. Inside: a container with leftovers, eggs, some vegetables, a jar of pickles.\n\nYour stomach growls. What do you take?',
+                nextChoices:[
+                    {text:'Leftover chicken and rice — eat cold in the kitchen',odds:75,changes:{hunger:12},trash:1,nextAct:'Eating leftovers cold',
+                        nextText:'You open the container. Chicken legs and white rice, three days old. Cold. You eat with your fingers, standing in the dark, listening to her snore.\n\nThe rice is hard. The chicken is dry. But it\'s food. You finish, wash the container in the dark, put it back.\n\nYou have trash now — chicken bones, a napkin. You wrap it in your hand. You need to hide it.',
+                        nextChoices:[
+                            {text:'Take the trash back to your room — hide it under your bed',odds:70,changes:{},trashSpot:'underBed',trash:1,nextAct:'Hiding trash under the bed',
+                                fail:{failText:'You dropped a bone on the floor. The clatter echoed. She shifted in her sleep. You didn\'t breathe for a minute.',failChanges:{suspicion:5}},
+                                nextText:'Back in your room, you stuff the wrapped trash under your bed. Deep in the corner. She\'d have to get on her hands and knees to find it. Not impossible. But hidden for now.',
+                                nextChoices:[
+                                    {text:'Go to sleep — mission accomplished',odds:100,changes:{},nextAct:'Going to sleep',
+                                        nextText:'You lie down. Your stomach is full. The trash is hidden. For now, you\'re safe. Sleep comes easier with food in your belly.',
+                                        nextChoices:[{text:'Sleep',changes:{},odds:100}]},
+                                    {text:'Write in your journal first — process the night',odds:80,changes:{health:2},setFlags:['therapy'],nextAct:'Journaling',
+                                        fail:{failText:'Too tired. Your eyes close before you can type.',failChanges:{}},
+                                        nextText:'You open your phone. Type a few lines about tonight. The kitchen. The food. The hiding. It helps to write it down. Validation that this is real.',
+                                        nextChoices:[{text:'Sleep',changes:{},nextAct:'Sleeping',odds:100}]}
+                                ]},
+                            {text:'Hide trash in your closet — among clothes',odds:75,changes:{},trashSpot:'inCloset',trash:1,nextAct:'Hiding trash in the closet',
+                                nextText:'You stuff the trash deep in your closet, under a pile of clothes you never wear. She rearranges your closet sometimes but rarely digs that deep. A decent spot.',
+                                nextChoices:[{text:'Go to sleep',changes:{},nextAct:'Going to sleep',odds:100}]},
+                            {text:'Hide trash behind your desk — between the wall and furniture',odds:80,changes:{},trashSpot:'behindDesk',trash:1,nextAct:'Hiding trash behind the desk',
+                                nextText:'You wedge the trash between your desk and the wall. Invisible unless someone moves the desk. Safe for now.',
+                                nextChoices:[{text:'Go to sleep',changes:{},nextAct:'Going to sleep',odds:100}]}
+                        ]},
+                    {text:'Eat the leftover chicken — heat it in the microwave (risky but warm)',odds:40,changes:{hunger:20,ateToday:true},trash:1,nextAct:'Heating leftovers',
+                        fail:{failText:'The microwave beeped. A short beep. But in the silence it was a scream. You heard her stop snoring. You hit the floor. Lay there for five minutes before moving.',failChanges:{suspicion:12}},
+                        nextText:'You put the plate in the microwave. 30 seconds. It hums quietly. The food comes out warm. So much better than cold.\n\nYou eat quickly. The warmth spreads through you. Worth the risk. You wash the dish. Now — the trash.',
+                        nextChoices:[
+                            {text:'Hide trash under your mattress',odds:65,changes:{},trashSpot:'underMattress',trash:1,nextAct:'Hiding trash',
+                                nextText:'You slide the trash under your mattress. She never lifts the mattress. Should be safe.',
+                                nextChoices:[{text:'Sleep',changes:{},nextAct:'Going to sleep',odds:100}]},
+                            {text:'Hide trash in your closet',odds:75,changes:{},trashSpot:'inCloset',trash:1,nextAct:'Hiding trash',nextText:'You bury the trash in your closet.',nextChoices:[{text:'Sleep',changes:{},nextAct:'Going to sleep',odds:100}]}
+                        ]},
+                    {text:'Just take the leftovers and go back to your room — eat there',odds:80,changes:{},nextAct:'Taking food to your room',
+                        fail:{failText:'You dropped the container. Plastic on tile. The sound cut through the house. You grabbed it and ran to your room. Didn\'t eat. Too scared.',failChanges:{suspicion:8,hunger:-5}},
+                        nextText:'You grab the container and a fork. Slip back to your room. Close the door as much as you can. Sit on your bed and eat in the dark.\n\nIt\'s not much but it\'s YOURS. Your food. Your space. Your choice.',
+                        nextChoices:[
+                            {text:'Eat it all — finish every bite',odds:90,changes:{hunger:15},trash:1,nextAct:'Eating in your room',
+                                fail:{failText:'The food was bad. Really bad. You forced half down and gave up.',failChanges:{hunger:5}},
+                                nextText:'You eat everything. Lick the container clean. Now you have an empty container and bones to hide.',
+                                nextChoices:[
+                                    {text:'Hide the trash under your bed',odds:70,changes:{},trashSpot:'underBed',trash:1,nextAct:'Hiding trash',
+                                        fail:{failText:'You had to get on your knees. The floor creaked.',failChanges:{suspicion:3}},
+                                        nextText:'You stuff the evidence under your bed. Out of sight. For now.',
+                                        nextChoices:[{text:'Sleep',changes:{},nextAct:'Going to sleep',odds:100}]},
+                                    {text:'Wash the container and return it — no evidence',odds:60,changes:{suspicion:3},trash:0,nextAct:'Washing the container',
+                                        fail:{failText:'The water was too loud. You turned it off. The container is still dirty in your room. Evidence.',failChanges:{suspicion:3}},
+                                        nextText:'You sneak back to the kitchen. Wash the container in complete darkness. Dry it. Put it back. No evidence. Clean getaway.',
+                                        nextChoices:[{text:'Sleep',changes:{},nextAct:'Going to sleep',odds:100}]}
+                                ]},
+                            {text:'Eat half. Save the rest for tomorrow.',odds:85,changes:{hunger:10,invFood:1},trash:1,nextAct:'Saving half',
+                                nextText:'You eat half. Wrap the rest in a napkin. Hide it in your bag for tomorrow. Smart rationing.',
+                                nextChoices:[{text:'Hide the trash and the leftover',odds:75,changes:{},trashSpot:'behindDesk',trash:1,nextAct:'Hiding everything',nextText:'You hide both the trash and the wrapped food in different spots. Organized survival.',nextChoices:[{text:'Sleep',changes:{},nextAct:'Going to sleep',odds:100}]}]}
+                        ]}
+                ]},
+            {text:'Check the cabinets — instant noodles',odds:75,changes:{},nextAct:'Checking the cabinets',
+                nextText:'You open the cabinet. Packets of instant ramen. Canned goods. A bag of rice. Your eyes lock onto the noodles. A classic solution.',
+                nextChoices:[
+                    {text:'Boil water for ramen — loud but so good',odds:40,changes:{hunger:25,ateToday:true},trash:2,nextAct:'Cooking ramen',
+                        fail:{failText:'The kettle CLICKED. Loud. You heard her STOP snoring. You dropped to the floor, heart pounding. Minutes passed. You crawled back to bed. So hungry.',failChanges:{suspicion:15,hunger:-5}},
+                        nextText:'The kettle clicks. You cringe. But she doesn\'t stop snoring. The water boils. You pour it over the noodles. The smell fills the kitchen.\n\nThree minutes. The longest three minutes of your life. You eat the noodles standing up, drink the broth. Pure satisfaction.\n\nNow: two wrappers and a soggy packet. Trash to hide.',
+                        nextChoices:[
+                            {text:'Hide ramen trash in your bag (risky — she checks there)',odds:50,changes:{},trashSpot:'inBag',trash:2,note:'Trash in your bag — risky, she checks there',nextAct:'Hiding in bag',
+                                fail:{failText:'You stuffed it in your bag. But it smells like ramen. She\'ll definitely notice.',failChanges:{suspicion:5}},
+                                nextText:'In your bag. Not ideal. She checks your bag. But it\'s late and you\'re tired. You\'ll deal with it tomorrow.',
+                                nextChoices:[{text:'Sleep',changes:{},nextAct:'Going to sleep',odds:100}]},
+                            {text:'Hide trash behind the desk — safer',odds:80,changes:{},trashSpot:'behindDesk',trash:2,nextAct:'Hiding trash',
+                                nextText:'You wedge the trash behind your desk. She rarely comes to your room at night.',
+                                nextChoices:[{text:'Sleep',changes:{},nextAct:'Going to sleep',odds:100}]},
+                            {text:'Dispose of the trash outside now — the only way to be sure',odds:30,changes:{suspicion:10,trash:0},nextAct:'Going outside',
+                                fail:{failText:'The front door has a LOUD lock. You turned it. She stirred. You ran back to your room. Still holding the trash.',failChanges:{suspicion:10}},
+                                nextText:'You unlock the front door. Step outside. The cold air hits you. You dump the trash in the outside bin. Free. Clean. No evidence. You slip back inside. Lock the door. Breathe.',
+                                nextChoices:[{text:'Sleep',changes:{},nextAct:'Going to sleep',odds:100}]}
+                        ]},
+                    {text:'Eat dry ramen — safe, quiet, less filling',odds:90,changes:{hunger:12},trash:1,nextAct:'Eating dry ramen',
+                        nextText:'You crush the noodles in the packet. Sprinkle the seasoning. Shake.\n\nThe crunch is loud in your mouth but contained. You chew slowly. Dry, salty, satisfying in its own way.\n\nOne wrapper. One packet. Minimal trash.',
+                        nextChoices:[
+                            {text:'Hide trash under your mattress',odds:75,changes:{},trashSpot:'underMattress',trash:1,nextAct:'Hiding trash',
+                                nextText:'You slide the wrapper under your mattress. Flat. Invisible.',
+                                nextChoices:[{text:'Sleep',changes:{},nextAct:'Going to sleep',odds:100}]},
+                            {text:'Hide trash in your closet',odds:80,changes:{},trashSpot:'inCloset',trash:1,nextAct:'Hiding trash',
+                                nextText:'You stuff it in an old jacket pocket in your closet.',
+                                nextChoices:[{text:'Sleep',changes:{},nextAct:'Going to sleep',odds:100}]}
+                        ]},
+                    {text:'Canned soup — heat on stove (medium risk)',odds:45,changes:{hunger:18,ateToday:true},trash:2,nextAct:'Heating soup',
+                        fail:{failText:'The can opener screeched. Metal on metal. You dropped everything and ran back to bed. No food tonight.',failChanges:{suspicion:8,hunger:-5}},
+                        nextText:'You open the can slowly. Pour it into a pot. The stove clicks. Gas flames. The soup warms.\n\nYou eat it straight from the pot. Hot. Salty. Nourishing. Wash the pot. Put it back.\n\nTwo pieces of trash: the can and a wrapper.',
+                        nextChoices:[
+                            {text:'Hide trash in your closet',odds:75,changes:{},trashSpot:'inCloset',trash:2,nextAct:'Hiding trash',nextText:'You wrap the can in a plastic bag and bury it in your closet.',nextChoices:[{text:'Sleep',changes:{},nextAct:'Going to sleep',odds:100}]},
+                            {text:'Hide trash behind your desk',odds:80,changes:{},trashSpot:'behindDesk',trash:2,nextAct:'Hiding trash',nextText:'You push the can between the desk and the wall. Invisible.',nextChoices:[{text:'Sleep',changes:{},nextAct:'Going to sleep',odds:100}]}
+                        ]}
+                ]},
+            {text:'Just drink water and go back to bed',odds:100,changes:{},nextAct:'Drinking water',
+                nextText:'You fill a glass from the tap. Drink it slowly. It fills your stomach temporarily. Not food. But safe.\n\nYou stand in the dark kitchen, drinking water, listening to her snore. This is your life now. You put the glass in the sink and go back to bed.',
+                nextChoices:[{text:'Try to sleep',changes:{},nextAct:'Trying to sleep',nextText:'Back in bed. Stomach aching with hunger. But sleep takes you eventually.',nextChoices:[{text:'Sleep',changes:{},odds:100}]}]}
+        ]},
+    {text:'Use the bathroom first, then think about food',odds:90,changes:{bladder:-20},nextAct:'Using the bathroom',
+        nextText:'You use the bathroom in the dark. Flushing is too loud — you leave it. Now you\'re up. The kitchen is right there. Tempting.',
+        nextChoices:[
+            {text:'Go to the kitchen — you\'re already up',odds:80,changes:{},nextAct:'Going to the kitchen',
+                nextText:'You\'re awake. Might as well try. You step into the dark kitchen.',
+                nextChoices:[
+                    {text:'Check the fridge',odds:70,changes:{},nextAct:'Checking the fridge',nextText:'You open the fridge. Leftovers. Eggs. Milk.',nextChoices:[
+                        {text:'Eat leftovers cold',odds:75,changes:{hunger:12},trash:1,nextAct:'Eating',nextText:'You eat standing in the dark. Now hide the trash.',nextChoices:[
+                            {text:'Under the bed',odds:70,changes:{},trash:1,trashSpot:'underBed',nextText:'Hidden.',nextChoices:[{text:'Sleep',changes:{},nextAct:'Going to sleep',odds:100}]},
+                            {text:'In the closet',odds:75,changes:{},trash:1,trashSpot:'inCloset',nextText:'Hidden.',nextChoices:[{text:'Sleep',changes:{},nextAct:'Going to sleep',odds:100}]},
+                            {text:'Behind the desk',odds:80,changes:{},trash:1,trashSpot:'behindDesk',nextText:'Hidden.',nextChoices:[{text:'Sleep',changes:{},nextAct:'Going to sleep',odds:100}]}
+                        ]},
+                        {text:'Microwave leftovers (risky)',odds:35,changes:{hunger:20,ateToday:true},trash:1,fail:{failText:'BEEP. She stirred. You ran.',failChanges:{suspicion:12}},nextText:'Warm food. Worth it. Hide the trash.',nextChoices:[
+                            {text:'In the closet',odds:75,changes:{},trash:1,trashSpot:'inCloset',nextText:'Hidden.',nextChoices:[{text:'Sleep',changes:{},nextAct:'Going to sleep',odds:100}]},
+                            {text:'In bag',odds:50,changes:{},trash:1,trashSpot:'inBag',note:'Risky — she checks your bag',nextText:'Not ideal but done.',nextChoices:[{text:'Sleep',changes:{},nextAct:'Going to sleep',odds:100}]}
+                        ]},
+                        {text:'Drink milk — no trash',odds:95,changes:{hunger:5},nextText:'Milk. Quiet. Clean. No evidence.',nextChoices:[{text:'Sleep',changes:{},nextAct:'Going to sleep',odds:100}]}
+                    ]},
+                    {text:'Check the cabinets',odds:75,changes:{},nextAct:'Checking cabinets',nextText:'Cabinets. Instant noodles. Canned soup.',nextChoices:[
+                        {text:'Cook ramen (risky but filling)',odds:35,changes:{hunger:25,ateToday:true},trash:2,fail:{failText:'Kettle CLICKED. She moved. You fled.',failChanges:{suspicion:15}},nextText:'Hot ramen. Worth every risk. Two pieces of trash.',nextChoices:[
+                            {text:'Hide in closet',odds:75,changes:{},trash:2,trashSpot:'inCloset',nextText:'Hidden.',nextChoices:[{text:'Sleep',changes:{},nextAct:'Going to sleep',odds:100}]},
+                            {text:'Hide behind desk',odds:80,changes:{},trash:2,trashSpot:'behindDesk',nextText:'Hidden.',nextChoices:[{text:'Sleep',changes:{},nextAct:'Going to sleep',odds:100}]}
+                        ]},
+                        {text:'Eat dry ramen',odds:90,changes:{hunger:10},trash:1,nextText:'Dry and crunchy. One wrapper.',nextChoices:[
+                            {text:'Under mattress',odds:75,changes:{},trash:1,trashSpot:'underMattress',nextText:'Hidden.',nextChoices:[{text:'Sleep',changes:{},nextAct:'Going to sleep',odds:100}]},
+                            {text:'In closet',odds:80,changes:{},trash:1,trashSpot:'inCloset',nextText:'Hidden.',nextChoices:[{text:'Sleep',changes:{},nextAct:'Going to sleep',odds:100}]}
+                        ]}
+                    ]}
+                ]},
+            {text:'Go back to bed — too risky tonight',odds:100,changes:{},nextAct:'Going back to bed',
+                nextText:'You used the bathroom. That\'s enough. You go back to bed. Your stomach growls but you close your eyes. Sleep pulls you under. Tomorrow is another day.',
+                nextChoices:[{text:'Sleep',changes:{},odds:100}]}
+        ]},
+    {text:'Stay in bed. Too risky. Hunger is safer than getting caught.',odds:100,changes:{hunger:-5},nextAct:'Staying in bed',
+        nextText:'You stay in bed. Your stomach twists and aches. But you\'re safe. No one caught you. No trash to hide. You close your eyes and wait for sleep to take the hunger away.\n\nIt doesn\'t. Not really. But you survive the night.',
+        nextChoices:[{text:'Sleep',changes:{},nextAct:'Falling asleep',odds:100}]}
+]);
+
+// ======================== MORNING ========================
+
+ev('morningWake','morning',null,'Morning — A New Day',
+'Light creeps through the curtains. For one brief second, there\'s silence. Peace. Then you hear her.\n\nShe\'s already talking. On the phone. To herself. Doesn\'t matter. Her voice fills the house like smoke.\n\nYour stomach is empty. Your bladder is full. The day has begun.',
+'"I wake up and the first thing I hear is her voice. Every single day. No silence. No peace. Just her."',
+[
+    {text:'Get up — use the bathroom before she corners you',odds:80,changes:{bladder:-20},nextAct:'Getting up',
+        fail:{failText:'She was RIGHT outside the door. "Good morning!" Trapped. You mumbled something and pushed past.',failChanges:{suspicion:3}},
+        nextText:'You make it to the bathroom. Lock the door. She\'ll comment on the locking later but right now you don\'t care.\n\nYou handle your business. Splash water on your face. Look at yourself in the mirror. You look tired. You ARE tired.\n\nNow — breakfast. She\'s in the kitchen. You can smell something burning.',
+        nextChoices:[
+            {text:'Go to the kitchen — face breakfast',odds:70,changes:{},nextAct:'Going to breakfast',
+                nextText:'You walk into the kitchen. She\'s at the stove. She turns when she hears you. "Finally up." She puts a plate on the table.\n\nBurnt eggs. Hard rice. Some vegetable you can\'t identify. She waits. "Eat."',
+                nextChoices:[
+    {text:'Eat it. Nod. "Thank you." Survival.',odds:100,changes:{hunger:12,ateToday:true,health:-2},nextAct:'Eating silently',
+        nextText:'You eat. It tastes like nothing. Overcooked. Bland. But you finish. She watches. "Good?" You nod. She\'s satisfied.\n\nYou have a plate to wash. What do you do?',
+        nextChoices:[
+            {text:'Wash your plate and put it away',odds:100,changes:{},nextAct:'Washing the plate',
+                nextText:'You wash your plate in silence. She\'s already distracted by the TV. You put it away and leave the kitchen.',
+                nextChoices:[{text:'Start your day',changes:{},nextAct:'Starting the day',odds:100}]},
+            {text:'Leave the plate in the sink — deal later',odds:100,changes:{},nextAct:'Leaving the plate',
+                nextText:'You leave the plate. She\'ll complain about it tonight. But right now, you just want to leave the kitchen.',
+                nextChoices:[{text:'Start your day',changes:{},nextAct:'Starting the day',odds:100}]}
+        ]},
+                    {text:'"I\'m not hungry." Avoid the food.',odds:55,changes:{suspicion:5},nextAct:'Refusing food',
+                        fail:{failText:'"I woke up EARLY to cook for YOU! And you won\'t even EAT it?! You\'re so UNGRATEFUL!" She went on for ten minutes.',failChanges:{suspicion:5,health:-4}},
+                        nextText:'You say you\'re not hungry. She rolls her eyes. "Fine. More for me." You leave the kitchen. Stomach growling. But you\'re free.',
+                        nextChoices:[{text:'Start your day',changes:{},nextAct:'Starting the day',odds:100}]},
+                    {text:'"Can I make my own breakfast?"',odds:35,changes:{suspicion:8},setFlags:['selfSufficient'],nextAct:'Making your own food',
+                        fail:{failText:'"No. I already cooked. Eat what I made." No room for negotiation.',failChanges:{suspicion:5}},
+                        nextText:'She looks at you. "Fine. Do what you want." A rare surrender.\n\nYou make yourself eggs. Seasoned properly. Toast. You sit and eat your own cooking. It\'s good. Really good. You made this. Yourself.',
+                        nextChoices:[{text:'Wash your dishes',changes:{hunger:18,health:3,ateToday:true},nextAct:'Washing dishes',nextText:'You wash your dishes. Leave the kitchen clean. She can\'t complain.',nextChoices:[{text:'Start your day',changes:{},nextAct:'Starting the day',odds:100}]}]}
+                ]},
+            {text:'Go back to your room — avoid breakfast',odds:70,changes:{hunger:-5},nextAct:'Avoiding breakfast',
+                fail:{failText:'She saw you turn. "Where are you going? Get back here and eat!"',failChanges:{suspicion:3}},
+                nextText:'You go to your room instead of the kitchen. Close the door halfway. She calls your name once. Twice. Then gives up.\n\nYour stomach growls. But the peace is worth it.',
+                nextChoices:[{text:'Get dressed and start the day',changes:{},nextAct:'Starting the day',odds:100}]}
+        ]},
+    {text:'Stay in bed a little longer',odds:80,changes:{health:2},nextAct:'Staying in bed',
+        fail:{failText:'She came in. Opened the curtains. "Get UP! It\'s late!" The light burned your eyes.',failChanges:{health:-2}},
+        nextText:'You pull the covers over your head. Just a few more minutes. Her voice filters through the walls. But in bed, under the covers, you\'re safe.\n\n...She calls your name. Louder. The peace is over.',
+        nextChoices:[
+            {text:'Get up. The day won\'t wait.',odds:75,changes:{bladder:-15},nextAct:'Getting up',
+                fail:{failText:'You stumbled out. She was right there. "Finally. I thought you\'d sleep forever."',failChanges:{health:-2}},
+                nextText:'You get up. The day begins. You shuffle to the bathroom.',
+                nextChoices:[{text:'Bathroom then breakfast',changes:{},nextAct:'Starting the day',nextText:'You handle your business and head to the kitchen. She\'s there. Breakfast is waiting.',nextChoices:[
+                    {text:'Eat it silently',odds:100,changes:{hunger:12,ateToday:true,health:-2},nextText:'You eat. She\'s already on the phone. You wash your plate and leave.',nextChoices:[{text:'Start your day',changes:{},nextAct:'Starting the day',odds:100}]},
+                    {text:'"Not hungry."',odds:55,changes:{suspicion:5},fail:{failText:'Guilt trip. Loud.',failChanges:{suspicion:5,health:-4}},nextText:'You escape to your room.',nextChoices:[{text:'Start your day',changes:{},nextAct:'Starting the day',odds:100}]}
+                ]}]},
+            {text:'Wait until she comes to get you',odds:85,changes:{},nextAct:'Waiting',
+                fail:{failText:'She didn\'t come. She just left you alone. But now it\'s late and you feel guilty.',failChanges:{health:-2}},
+                nextText:'She calls again. Then footsteps. She\'s coming. You close your eyes and pretend you just woke up. The performance begins.',
+                nextChoices:[{text:'Get up',changes:{},nextAct:'Getting up',nextText:'"Oh, you\'re awake. Good." She leaves. You get up.',nextChoices:[{text:'Start the day',changes:{},nextAct:'Starting the day',odds:100}]}]}
+        ]}
+]);
+
+// ======================== AFTERNOON ========================
+
+ev('afternoonGym','afternoon',null,'Afternoon — Gym Day',
+'The gym is your sanctuary. The one place she can\'t follow. She told you to exercise this morning — now\'s your chance. But leaving the house means getting past her questions first.\n\nAlso — you have trash hidden in your room. This could be your chance to dispose of it. You could also stop by the convenience store on the way back to stock up on food.',
+'"The gym is freedom. The store is supplies. If I can do both in one trip, it\'s a productive day."',
+[
+    {text:'Head to the gym — maybe stop at the store after',odds:65,changes:{strength:1},nextAct:'Heading to the gym',
+        fail:{failText:'She stopped you at the door. "Where are you going?" "The gym." "Since WHEN do you go to the gym?" She forgot she told you to. Classic.',failChanges:{suspicion:5,health:-2}},
+        nextText:'You made it outside. Fresh air. Open sky. The gym is a few blocks away. You have trash in your pocket from last night — you can dump it in the outside bin on your way.\n\nThe gym. Weights. Sweat. Freedom.',
+        nextChoices:[
+            {text:'Dump the trash in the outside bin on your way — clean conscience',odds:95,changes:{trash:0,trashSpot:''},nextAct:'Disposing of trash',
+                note:'Trash disposed! No evidence in your room.',
+                fail:{failText:'A neighbor saw you. "What are you throwing away?" You mumbled something and walked faster.',failChanges:{suspicion:3}},
+                nextText:'You drop the trash in the public bin. Gone. No evidence. No smell. No risk. Clean slate.\n\nLighter, you walk to the gym.',
+                nextChoices:[
+                    {text:'Push hard — heavy workout',odds:60,changes:{strength:4,hunger:-8},setFlags:['gymConsistent'],nextAct:'Pushing hard',
+                        fail:{failText:'You pushed too hard. Vision went dark. Had to sit down.',failChanges:{strength:-1,health:-5}},
+                        nextText:'You lift heavy. Really heavy. Sweat pours. Muscles scream. It feels AMAZING.\n\nAfter the workout, you\'re exhausted but powerful. You sit in the locker room, catching your breath. You did something for YOURSELF today.',
+                        nextChoices:[
+                            {text:'Stop at the convenience store on the way home',odds:75,changes:{money:-4},nextAct:'Going to the store',
+                                fail:{failText:'You were too tired. You just wanted to go home.',failChanges:{money:0}},
+                                nextText:'You walk into the store. Grab instant noodles, crackers, a sports drink. Things to hide in your room.\n\nThe cashier rings you up. You pay. Bag it. Now — hide it when you get home.',
+                                nextChoices:[
+                                    {text:'Hide the food in your bag — safe spot',odds:80,changes:{invFood:3},nextAct:'Hiding food in bag',
+                                        fail:{failText:'She was in the living room. "What\'s in the bag?" "Nothing." She didn\'t believe you but let it go.',failChanges:{suspicion:3}},
+                                        nextText:'You slip into your room. Open your bag. Put the food inside. Your stash grows.',
+                                        nextChoices:[{text:'Rest',changes:{hunger:5},nextAct:'Resting',odds:100}]},
+                                    {text:'Hide it in your closet among clothes',odds:75,changes:{invFood:3},nextAct:'Hiding in closet',
+                                        nextText:'You bury the food in your closet. Under a sweater. Safe.',
+                                        nextChoices:[{text:'Rest',changes:{},nextAct:'Resting',odds:100}]}
+                                ]},
+                            {text:'Go straight home — save money',odds:100,changes:{},nextAct:'Going home',
+                                nextText:'You walk home. Tired but satisfied. She asks where you were. "The gym." She nods. No follow-up questions. A win.',
+                                nextChoices:[{text:'Rest',changes:{},nextAct:'Resting',odds:100}]}
+                        ]},
+                    {text:'Moderate workout — steady and consistent',odds:75,changes:{strength:2,hunger:-4},nextAct:'Moderate workout',
+                        fail:{failText:'She called you 20 minutes in. "When are you coming back?" The interruption killed your focus.',failChanges:{suspicion:3}},
+                        nextText:'You do your routine. Weights. Cardio. Stretching. Nothing extreme but consistent. Your body feels alive.',
+                        nextChoices:[
+                            {text:'Stop at the convenience store on the way back',odds:75,changes:{money:-3,invFood:2},nextAct:'Going to the store',
+                                fail:{failText:'She called as you were walking in. "Where ARE you?" "Coming home." You rushed back.',failChanges:{suspicion:3}},
+                                nextText:'You grab some snacks and instant noodles. Quick trip. Hide them in your bag when you get home.',
+                                nextChoices:[{text:'Rest',changes:{},nextAct:'Resting',odds:100}]},
+                            {text:'Go straight home',odds:100,changes:{},nextAct:'Going home',nextText:'Home. She\'s in her room. You slip past.',nextChoices:[{text:'Rest',changes:{},nextAct:'Resting',odds:100}]}
+                        ]}
+                ]},
+            {text:'No trash to dispose — go straight to the gym',odds:100,changes:{},nextAct:'Going to the gym',
+                nextText:'No trash today. You head straight to the gym. Leg day. Your favorite.',
+                nextChoices:[
+                    {text:'Push hard',odds:60,changes:{strength:4,hunger:-8},setFlags:['gymConsistent'],fail:{failText:'Too much. You cramped up.',failChanges:{strength:-1,health:-4}},nextText:'Heavy lifts. Feels incredible.',nextChoices:[
+                        {text:'Convenience store on the way back',odds:75,changes:{money:-3,invFood:2},fail:{failText:'Too tired. Went home.',failChanges:{}},nextText:'Snacks for the stash.',nextChoices:[{text:'Rest',changes:{},nextAct:'Resting',odds:100}]},
+                        {text:'Go home',odds:100,changes:{},nextText:'Home. Shower. Rest.',nextChoices:[{text:'Rest',changes:{},nextAct:'Resting',odds:100}]}
+                    ]},
+                    {text:'Moderate workout',odds:75,changes:{strength:2,hunger:-4},nextText:'Solid workout. Consistent.',nextChoices:[
+                        {text:'Convenience store',odds:75,changes:{money:-3,invFood:2},fail:{failText:'She called. You had to go home.',failChanges:{}},nextText:'Quick shop. Hide the goods.',nextChoices:[{text:'Rest',changes:{},nextAct:'Resting',odds:100}]},
+                        {text:'Go home',odds:100,changes:{},nextText:'Home. Rest.',nextChoices:[{text:'Rest',changes:{},nextAct:'Resting',odds:100}]}
+                    ]}
+                ]}
+        ]},
+    {text:'Work out at home — no confrontation needed',odds:75,changes:{strength:1},nextAct:'Working out at home',
+        fail:{failText:'The floor creaked. She knocked on the wall. "Too much noise!"',failChanges:{suspicion:3}},
+        nextText:'You do pushups and squats in your room. It\'s not the gym but it\'s something. Your body needs movement. You push through the burn.\n\nYou finish. Lie on the floor. Breathing hard. You did what you could with what you have.',
+        nextChoices:[{text:'Rest',changes:{},nextAct:'Resting',odds:100}]},
+    {text:'Skip exercise. Rest today. Your body needs recovery.',odds:100,changes:{health:2},nextAct:'Resting',
+        nextText:'You stay in. Your body aches. Not just from the days — from the stress. From the constant vigilance. You lie on your bed and stare at the ceiling.\n\nSometimes rest is the most productive thing you can do.',
+        nextChoices:[{text:'Rest',changes:{},nextAct:'Resting',odds:100}]}
+]);
+
+ev('afternoonStudy','afternoon',()=>G.day>=3,'Afternoon — Trying to Study',
+'You open your textbook. Today, you\'re going to focus. Grades are your ticket out. If you can get a scholarship, you can leave this house forever.\n\nBut she\'s home. And she can\'t stand you focusing on something other than her.',
+'"I try to study. She interrupts every 10 minutes. "I\'m just cleaning." "Do you need water?" She can\'t stand me focusing on something other than her."',
+[
+    {text:'Headphones in. Full focus. Lock the world out.',odds:45,changes:{},setFlags:['scholarship'],nextAct:'Studying with headphones',
+        fail:{failText:'She tapped your shoulder. You jumped. She pulled your earbud out. "What are you LISTENING to? I called you THREE times!" She stood there, waiting for an answer.',failChanges:{suspicion:5,health:-3}},
+        nextText:'Music fills your ears. The textbook makes sense. For 45 minutes, you\'re not a survivor — you\'re a student. Learning. Growing. Building your future.\n\nSomething clicks. A concept you\'ve been struggling with. You understand it now. You feel smart. Capable.',
+        nextChoices:[
+            {text:'Keep going — another hour',odds:55,changes:{},setFlags:['scholarship'],fail:{failText:'She came back. "Are you STILL studying? Take a break. You\'ll hurt your eyes."',failChanges:{suspicion:3,health:-2}},
+                nextText:'You push through. Another chapter. More notes. Your brain is working. Growing. Getting stronger.\n\nYou\'re going to get out of here. And it starts with this. With studying. With being smart enough to escape.',
+                nextChoices:[{text:'Take a break',changes:{health:2},nextAct:'Taking a break',odds:100}]},
+            {text:'That\'s enough for today. Good session.',odds:100,changes:{health:2},nextAct:'Done studying',
+                nextText:'You close the book. Good session. You actually learned something. A rare feeling of accomplishment in this house.',
+                nextChoices:[{text:'Rest',changes:{},nextAct:'Resting',odds:100}]}
+        ]},
+    {text:'Study with the door open — let her see you working',odds:65,changes:{},nextAct:'Studying with door open',
+        fail:{failText:'She turned the TV on. Full volume. Right outside your room. You couldn\'t concentrate. You gave up.',failChanges:{health:-2}},
+        nextText:'You study with the door open. She walks past. Looks in. Sees you working. Nods. Keeps walking.\n\nShe can\'t criticize you for not studying when you\'re clearly studying. It\'s a small tactical victory.\n\nYou get through a few chapters. Distracted but functional.',
+        nextChoices:[{text:'Keep going a little more',odds:60,changes:{},setFlags:['scholarship'],fail:{failText:'She came in to "clean your room." While you were studying. Unbelievable.',failChanges:{suspicion:3,health:-2}},nextText:'You push through. Not your best work but you\'re trying.',nextChoices:[{text:'Take a break',changes:{},nextAct:'Taking a break',odds:100}]},{text:'Close the book. Too many distractions.',odds:100,changes:{health:-2},nextText:'You close the book. The concentration is broken. You\'ll try again later.',nextChoices:[{text:'Rest',changes:{},nextAct:'Resting',odds:100}]}]},
+    {text:'Can\'t focus. The stress is too much.',odds:100,changes:{health:-2},nextAct:'Giving up',
+        nextText:'You stare at the page. The words blur. Your mind is on her. On the argument. On the noise. On everything except the textbook.\n\nYou close it. Today is not the day for learning. Today is about survival. Tomorrow, maybe, you\'ll be a student again.',
+        nextChoices:[{text:'Rest',changes:{},nextAct:'Resting',odds:100}]}
+]);
+
+// ======================== EVENING ========================
+
+ev('eveningDinner','evening',null,'Evening — Dinner',
+'She calls you to the table. Dinner is ready. You know what it\'ll be before you see it. Fish. Overcooked vegetables. Rice. The same as yesterday. The same as every day.\n\nShe puts the plate in front of you. Waits. "How is it?" The question you\'ve learned to dread.',
+'"She asks if the food is good every single time. If I say yes, she\'s happy. If I say no, I\'m ungrateful. If I\'m silent, she asks again. There is no winning."',
+[
+    {text:'"It\'s good." Eat. Nod. Survive.',odds:100,changes:{hunger:12,ateToday:true,health:-2},nextAct:'Eating silently',
+        nextText:'You eat. It tastes like nothing. Overcooked. Bland. But it\'s food and you need it.\n\nShe watches you eat. It\'s unnerving. You keep your eyes on the plate. Finish every grain of rice. "See? I told you it\'s good."\n\nShe takes your plate with the bones on it. She\'ll handle it. That\'s her job tonight.',
+        nextChoices:[
+            {text:'Wash your plate and leave',odds:100,changes:{},nextAct:'Washing the plate',
+                nextText:'You wash your plate. Put it away. Dinner is over.',
+                nextChoices:[{text:'Evening free time',changes:{},nextAct:'Evening free time',odds:100}]},
+            {text:'Leave the plate in the sink — let her deal with it',odds:100,changes:{},nextAct:'Leaving the plate',
+                nextText:'You leave the plate in the sink. Less risk for you.',
+                nextChoices:[{text:'Leave the kitchen',changes:{},nextAct:'Leaving the kitchen',odds:100}]}
+        ]},
+    {text:'"I\'m not very hungry tonight."',odds:55,changes:{suspicion:5,hunger:-5},nextAct:'Skipping dinner',
+        fail:{failText:'"I cooked for HOURS! And you won\'t even EAT it?! You\'re so UNGRATEFUL!" She ranted for 15 minutes. You sat there and took it.',failChanges:{suspicion:5,health:-5}},
+        nextText:'You say you\'re not hungry. She sighs dramatically. "Fine. More for me." You leave the table.\n\nYour stomach growls. But the food wasn\'t worth the company. You\'ll eat from your stash later, when she\'s asleep.',
+        nextChoices:[{text:'Go to your room',changes:{},nextAct:'Going to your room',odds:100}]},
+    {text:'"Can I season it myself?"',odds:25,changes:{suspicion:8},setFlags:['selfSufficient','confronted'],nextAct:'Asking for seasoning',
+        fail:{failText:'"Oh, so my cooking isn\'t GOOD enough for you?! I\'ve been cooking since before you were BORN!" The plate stayed unseasoned. So did your relationship.',failChanges:{suspicion:10,health:-5}},
+        nextText:'You ask for salt. She pauses. Then pushes the salt shaker toward you. "Fine."\n\nYou season your food. It helps. Not much. But a little. You eat in silence. A small victory for your taste buds.',
+        nextChoices:[{text:'Finish dinner',changes:{hunger:12,ateToday:true},nextAct:'Finishing dinner',nextText:'You finish. Seasoned food is better food. You wash your plate and leave.',nextChoices:[{text:'Evening free time',changes:{},nextAct:'Evening free time',odds:100}]}]}
+]);
+
+ev('eveningFree','evening',null,'Evening — Free Time',
+'Dinner is over. The dishes are done. She\'s in the living room watching TV. You have a window of free time — a precious, fragile window. She could call you at any moment.\n\nWhat do you do with this borrowed time?',
+'"Free time in this house is borrowed. She can take it back anytime. I have to make every minute count."',
+[
+    {text:'Play games — escape into another world',odds:75,changes:{health:3},nextAct:'Gaming',
+        fail:{failText:'She called you. "Come sit with me!" The game was paused. The mood was broken.',failChanges:{health:-2}},
+        nextText:'You open a game. Another world loads. No aunts. No shouting. Just quests and adventures.\n\nFor 30 minutes, you\'re not here. You\'re in a world where YOU matter. Where your choices have clear outcomes. Where good things happen when you try.\n\nThen you hear footsteps.',
+        nextChoices:[
+            {text:'Keep playing — pretend you didn\'t hear her',odds:45,changes:{suspicion:5,health:2},fail:{failText:'She opened your door. "I CALLED you!" You muted the game. "Sorry. Headphones." She glared and left.',failChanges:{suspicion:8,health:-3}},
+                nextText:'You keep playing. She calls. You don\'t answer. The game continues. Small rebellion.\n\nAfter a while, she stops calling. You won this round.',
+                nextChoices:[{text:'Save and quit',changes:{},nextAct:'Saving the game',nextText:'You save. Quit. The real world waits.',nextChoices:[{text:'Wind down',changes:{},nextAct:'Winding down',odds:100}]}]},
+            {text:'Save and go sit with her — keep the peace',odds:70,changes:{suspicion:-3,health:-2},fail:{failText:'You sat with her. She talked through the entire show. Commented on every scene. Repeated herself. You wished you stayed in your room.',failChanges:{health:-3}},
+                nextText:'You save and go to the living room. Sit on the far end of the couch. She\'s watching something loud. She makes comments. You nod. "Mm." "Yeah."\n\nPeace maintained. Relationship points preserved.',
+                nextChoices:[{text:'Wind down',changes:{},nextAct:'Winding down',odds:100}]}
+        ]},
+    {text:'Read a book — lose yourself in words',odds:80,changes:{health:3},setFlags:['scholarship'],nextAct:'Reading',
+        nextText:'You open your book. Fiction. Someone else\'s life. Someone else\'s problems. Escaping into words.\n\nThe pages turn. You forget where you are. The house. Her. Everything. Just you and the story.',
+        nextChoices:[
+            {text:'Read another chapter',odds:70,changes:{health:2},fail:{failText:'She came in. "What are you reading?" She took the book. Looked at the cover. Handed it back. "Hm." The interruption broke the spell.',failChanges:{}},
+                nextText:'One more chapter. You can\'t put it down. The story has you.',
+                nextChoices:[{text:'Mark your page',changes:{},nextAct:'Marking the page',nextText:'You bookmark it. Tomorrow, you\'ll be back.',nextChoices:[{text:'Wind down',changes:{},nextAct:'Winding down',odds:100}]}]},
+            {text:'Close the book. Process what you read.',odds:100,changes:{},nextText:'You close the book. Let the story settle. Good book.',nextChoices:[{text:'Wind down',changes:{},nextAct:'Winding down',odds:100}]}
+        ]},
+    {text:'Exercise in your room — stay strong',odds:65,changes:{strength:1},nextAct:'Exercising',
+        fail:{failText:'The floor creaked. She banged on the wall. "TOO LOUD!" You stopped.',failChanges:{suspicion:3}},
+        nextText:'You do pushups. Squats. Lunges. Planks. Your body remembers the gym. Muscles engage. You feel powerful.\n\nIn this room, with your body moving, you\'re in control. No one tells you what to do here.',
+        nextChoices:[
+            {text:'Push harder — one more set',odds:60,changes:{strength:1},fail:{failText:'She knocked. "What ARE you doing in there?" "Nothing." You stopped.',failChanges:{suspicion:3}},nextText:'You push through another set. Burning. Good.',nextChoices:[{text:'Wind down',changes:{},nextAct:'Winding down',odds:100}]},
+            {text:'Cool down — stretch',odds:90,changes:{health:2},nextText:'You stretch. Flexibility. Calm. Your body thanks you.',nextChoices:[{text:'Wind down',changes:{},nextAct:'Winding down',odds:100}]}
+        ]}
+]);
+
+// ======================== SPECIAL EVENTS ========================
+
+ev('specialCheck','afternoon',()=>G.day>=2&&G.suspicion<70,'She Went Through Your Things',
+'You come back to your room and you know immediately. The drawer is slightly open. Your bag zipper is in a different position. She touched your things. Again.\n\nYour heart sinks. Did she find your food stash? Your journal? The trash?',
+'"I know exactly how I left things. The zipper was on the LEFT. Now it\'s on the RIGHT. I\'m not crazy. I know."',
+[
+    {text:'Confront her — "Did you go through my room?"',odds:15,changes:{suspicion:15},setFlags:['confronted'],nextAct:'Confronting her',
+        fail:{failText:'"I was just CLEANING! Why are you so DEFENSIVE? What are you HIDING?" She turned it on you. You became the bad guy for asking a question. Textbook.',failChanges:{suspicion:15,health:-6}},
+        nextText:'You ask her. She denies it at first. Then says she was "tidying up." You tell her you know your own room. She goes quiet. For a moment, she has no answer.\n\nYou walk away. You said it. That matters.',
+        nextChoices:[{text:'Check what\'s missing',changes:{},nextAct:'Checking your things',odds:100}]},
+    {text:'Check everything — inventory your hidden items',odds:75,changes:{},setFlags:['detective'],nextAct:'Checking your things',
+        fail:{failText:'Something is missing. Small. A trinket. She took it to remind you she can. Power move.',failChanges:{health:-3}},
+        nextText:'You check your food stash. Still there. Your journal. Still there. The trash — still hidden. Nothing missing this time.\n\nBut the invasion feels fresh. Violating. You re-hide everything in new spots. Just in case.',
+        nextChoices:[{text:'Re-hide your belongings',changes:{},nextAct:'Re-hiding',nextText:'You find new spots. The game of hide and seek continues.',nextChoices:[{text:'Rest',changes:{},nextAct:'Resting',odds:100}]}]},
+    {text:'Say nothing. Note it. Record it in your journal.',odds:100,changes:{},setFlags:['therapy','detective'],nextAct:'Recording the incident',
+        nextText:'You say nothing. You sit down and write: "Day ' + G.day + '. She checked my room again. Bag moved. Drawer opened. Nothing taken but nothing is safe."\n\nYou\'re building a record. Evidence. A timeline of her behavior. Someday, this will matter.',
+        nextChoices:[{text:'Rest',changes:{},nextAct:'Resting',odds:100}]}
+]);
+
+ev('specialDad','afternoon',()=>G.day>=7,'Your Dad Visits',
+'Your dad is here. He\'s in the living room with your aunt. They\'re talking. Laughing. About you.\n\nHe knows how she treats you. He\'s seen it. But when she\'s around, he becomes a different person. He laughs at her jokes. He agrees with her complaints. He\'s a coward when she\'s in the room.',
+'"My dad hates her. I know he does. But he laughs with her. At me. He\'s a different person around her. Weak."',
+[
+    {text:'Stay in your room. Don\'t engage.',odds:80,changes:{},nextAct:'Staying in your room',
+        fail:{failText:'She called you. "Your dad is HERE! Come say HELLO!" Forced. Always forced.',failChanges:{health:-2}},
+        nextText:'You stay in your room. They laugh in the other room. You put headphones on. Drown them out. You don\'t need to be part of their dynamic.\n\nHe\'ll leave eventually. He always does.',
+        nextChoices:[{text:'Wait',changes:{},nextAct:'Waiting',odds:100}]},
+    {text:'Find him alone. Talk to him.',odds:35,changes:{},setFlags:['truthOut'],nextAct:'Talking to your dad',
+        fail:{failText:'"Don\'t be so sensitive. That\'s just how she is. You know how she is." He dismissed you. Like always. He doesn\'t get it. He doesn\'t WANT to get it.',failChanges:{health:-6}},
+        nextText:'You catch him in the kitchen. Alone. "Why do you laugh at her jokes about me?" He looks uncomfortable. "I\'m not laughing AT you. I\'m laughing to keep peace." "Same thing."\n\nHe has no answer. You walk away. At least you said it.',
+        nextChoices:[{text:'Go back to your room',changes:{},nextAct:'Going back',odds:100}]}
+]);
+
+// ======================== GRIM ENDING TRIGGERS ========================
+
+ev('eveningSnap','evening',()=>G.day>=20&&G.suspicion>=70&&G.strength>=25,'Evening — The Breaking Point',
+'She\'s been pushing all day. Worse than usual. The shouting hasn\'t stopped. She went through your things. Found your stash. Held it up. Laughed. "What\'s this? Hiding food from me?" She took everything.\n\nSomething inside you is cracking. The pressure has been building for ' + (G.day>30?'months':'weeks') + '. And now, in this moment, you feel something you\'ve never felt before.\n\nA dark calm.', null,
+[
+    {text:'Walk away. Go to your room. Don\'t do anything stupid.',odds:100,changes:{health:-5,activity:'Walking away'},
+        nextText:'You go to your room. Close the door. Sit on your bed. Your hands are shaking. You breathe. In and out. You didn\'t do it. You didn\'t cross that line. But you felt how CLOSE you were. The thought scares you more than she ever could.',
+        nextChoices:[{text:'Lie down. Try to calm down.',changes:{},nextAct:'Calming down',
+            nextText:'You lie on your bed. Stare at the ceiling. The anger slowly fades. You survived today without becoming someone else. That counts.',
+            nextChoices:[{text:'Sleep',changes:{},odds:100}]}]},
+    {text:'Confront her. One last time. Say everything.',odds:20,changes:{suspicion:15,health:-5},setFlags:['confronted'],nextAct:'The final confrontation',
+        fail:{failText:'She laughed in your face. "Oh, you think you\'re SCARY? Get out of my sight." The dismissal was worse than the anger.',failChanges:{suspicion:10,health:-8}},
+        nextText:'You walk back to the living room. She\'s watching TV. You stand in front of the screen. She looks up, annoyed. "What?"\n\nYou tell her everything. Years of it. The control. The gaslighting. The hypocrisy. The hunger. The trash. The checking. All of it.\n\nShe stares at you. For a long moment, nothing. Then she says, quietly, "I did my best."\n\n"Your best wasn\'t good enough."\n\nYou walk away. You said it all. Whatever happens next, you said it.',
+        nextChoices:[{text:'Go to your room',changes:{},nextAct:'Going to your room',odds:100}]},
+    {text:'END IT. She won\'t hurt anyone else.',odds:5,changes:{},nextAct:'The act',
+        fail:{failText:'You couldn\'t do it. Your hands wouldn\'t move. You stood there, frozen, and then you ran to your room and cried. You\'re not that person. You couldn\'t be.',failChanges:{health:-10}},
+        nextText:'Time slows down. You move without thinking. Your hands find what they need. The house is quiet. Too quiet.\n\nShe\'s on the floor. Not moving. The TV is still playing. Some show she was watching. The laughter from the audience fills the room.\n\nYou look at your hands. They\'re not yours anymore. Everything is different now.\n\nThe front door is right there.',
+        nextChoices:[
+            {text:'Walk out. Don\'t look back. Start over somewhere else.',odds:35,changes:{},setFlags:['killedAuntFree'],nextAct:'Walking out',
+                fail:{failText:'You made it to the door. Your legs wouldn\'t carry you further. You sat on the steps. The police found you there.',failChanges:{setFlags:['killedAuntCaught']}},
+                nextText:'You walk out. The cold air hits you. You keep walking. Don\'t look back. Don\'t think. Just walk.\n\nYou don\'t know where you\'re going. But anywhere is better than there. Anywhere is better than her.\n\nYou disappear into the night.',
+                nextChoices:[{text:'Keep walking',changes:{},odds:100}]},
+            {text:'Clean up. Hide it. No one will know.',odds:20,changes:{},setFlags:['killedAuntCover'],nextAct:'The cover-up',
+                fail:{failText:'You tried. But you left evidence. Blood under your fingernails. A strand of hair. They found you within hours.',failChanges:{setFlags:['killedAuntCaught']}},
+                nextText:'You clean. Methodically. Every surface. Every trace. You change your clothes. You put everything in a bag.\n\nHours later, it\'s done. The house looks normal. You sit in your room and wait for someone to find out.\n\nDays pass. No one comes. You got away with it. But you see her face every time you close your eyes.',
+                nextChoices:[{text:'Sit in the silence',changes:{},odds:100}]},
+            {text:'Call the police. Tell them it was self-defense.',odds:50,changes:{},setFlags:['selfDefense'],nextAct:'Calling the police',
+                nextText:'You dial. Your voice is calm when you speak. "I need to report an incident." The operator asks questions. You answer.\n\nWhen they arrive, you\'re sitting on the couch. The TV is still playing the same show.\n\nThey take your statement. You tell them she came at you. You feared for your life. They believe you. Or they don\'t. Either way, it\'s over.\n\nThe handcuffs go on. "You have the right to remain silent."\n\nIn the car, you feel something you haven\'t felt in years. Relief.',
+                nextChoices:[{text:'Close your eyes',changes:{},odds:100}]}
+        ]}
+]);
+
+// ======================== NEW NIGHT EVENTS ========================
+
+ev('nightStash','night',()=>G.invFood>0,'Night — Eating From Your Stash',
+'Your stomach twists. Food is right there in your bag. Your stash. Food you bought with your own money.\n\nHer snoring is steady. You could eat right now. It\'s risky — chewing makes noise, wrappers crinkle, and trash will pile up. But it\'s YOUR food. You earned it.',
+'"My food. My money. My survival. She doesn\'t get to control this."',
+[
+    {text:'Eat from your stash — you\'re starving',odds:80,changes:{invFood:-1,hunger:18},trash:1,nextAct:'Eating from stash',
+        fail:{failText:'The wrapper crinkled too loud. You froze. Minutes passed. Nothing. You ate in the dark, too scared to move.',failChanges:{suspicion:3}},
+        nextText:'You reach into your bag. Pull out a pack of crackers or instant noodles. Dry. Simple. Yours.\n\nYou eat slowly, quietly. Every bite is a small rebellion. This food wasn\'t given to you. You didn\'t steal it from her kitchen. You BOUGHT it.\n\nNow you have a wrapper to hide.',
+        nextChoices:[
+            {text:'Hide the wrapper under your mattress',odds:75,changes:{},trashSpot:'underMattress',trash:1,nextAct:'Hiding the wrapper',
+                nextText:'You slide the wrapper under your mattress. Flat. Invisible.',
+                nextChoices:[{text:'Sleep',changes:{},nextAct:'Going to sleep',odds:100}]},
+            {text:'Hide it in your closet — deep in a pocket',odds:80,changes:{},trashSpot:'inCloset',trash:1,nextAct:'Hiding in closet',
+                nextText:'You stuff it in an old jacket pocket. She\'ll never dig that deep.',
+                nextChoices:[{text:'Sleep',changes:{},nextAct:'Going to sleep',odds:100}]},
+            {text:'Dispose of it outside now — risky but clean',odds:30,changes:{suspicion:8,trash:0},nextAct:'Going outside',
+                fail:{failText:'The lock clicked. You froze. She stirred. You went back to bed, still holding the wrapper.',failChanges:{suspicion:5}},
+                nextText:'You unlock the front door. Step into the cold air. Drop the wrapper in the outside bin. No evidence. You slip back inside.',
+                nextChoices:[{text:'Sleep',changes:{},nextAct:'Going to sleep',odds:100}]}
+        ]},
+    {text:'Save it for tomorrow. Hunger is manageable.',odds:100,changes:{hunger:-3},nextAct:'Saving it',
+        nextText:'You leave the stash untouched. Your stomach protests but you ignore it. Tomorrow you\'ll need it more than tonight.',
+        nextChoices:[{text:'Try to sleep',changes:{},nextAct:'Trying to sleep',odds:100}]}
+]);
+
+ev('nightBathroom','night',()=>G.bladder>=50,'Night — Bathroom Run',
+'Your bladder is pressing. You need to go. But the bathroom is right next to her room. Her door is open. If she wakes up, she\'ll want to "talk."\n\nYou could hold it. You\'ve held it before. But it hurts.',
+'"I\'ve learned to hold it for hours. But tonight the pressure wins."',
+[
+    {text:'Go to the bathroom — you really have to go',odds:65,changes:{bladder:-25},nextAct:'Using the bathroom',
+        fail:{failText:'The floor creaked. Right outside her door. You heard her shift in bed. You stood still for five minutes before moving again.',failChanges:{suspicion:4,bladder:-5}},
+        nextText:'You make it to the bathroom. Close the door. Don\'t lock it — the click is too loud. You handle your business as quietly as possible.\n\nFlushing is out of the question. You\'ll leave it. She\'ll blame you tomorrow but at least you\'re comfortable now.\n\nOn your way back...',
+        nextChoices:[
+            {text:'Go straight to bed — mission accomplished',odds:100,changes:{},nextAct:'Going back to bed',
+                nextText:'You slip back into bed. Relief. You close your eyes.',
+                nextChoices:[{text:'Sleep',changes:{},nextAct:'Sleeping',odds:100}]},
+            {text:'Pause at the kitchen — since you\'re already up',odds:60,changes:{},nextAct:'Checking the kitchen',
+                fail:{failText:'You paused too long. She called your name. You ran to bed.',failChanges:{suspicion:6}},
+                nextText:'You\'re already up. The kitchen is right there. You grab a quick glass of water and head back.',
+                nextChoices:[{text:'Sleep',changes:{hunger:2},nextAct:'Going to sleep',odds:100}]}
+        ]},
+    {text:'Hold it. Not worth the risk.',odds:100,changes:{bladder:8,health:-3},nextAct:'Holding it',
+        nextText:'You clench your muscles. Breathe through the discomfort. You\'ve done this before. You\'ll do it again.\n\nSleep comes slowly, painfully. But you didn\'t risk it. Safety over comfort. Always.',
+        nextChoices:[{text:'Sleep',changes:{},nextAct:'Sleeping',odds:100}]}
+]);
+
+ev('nightInsomnia','night',()=>G.day>=5,'Night — Can\'t Sleep',
+'You\'ve been lying here for hours. Eyes open. Staring at the ceiling. Your mind won\'t shut off. Her voice from today. The argument. The way she looked at you. The things she said.\n\nSleep isn\'t coming. What do you do?',
+'"I lie awake and replay everything she said. My brain won\'t let me rest. It\'s like she\'s in here with me even when she\'s asleep."',
+[
+    {text:'Write in your journal — get it out of your head',odds:70,changes:{health:2},setFlags:['therapy'],nextAct:'Journaling',
+        fail:{failText:'You opened your phone but nothing came. The thoughts were too loud to organize.',failChanges:{health:-2}},
+        nextText:'You type out everything. The argument. The feeling of being trapped. The small humiliations. Getting it on "paper" helps. It\'s real. It happened. You\'re not imagining it.\n\nYou feel a little lighter.',
+        nextChoices:[{text:'Try to sleep again',changes:{},nextAct:'Trying to sleep',odds:100}]},
+    {text:'Stare at the ceiling and wait for exhaustion',odds:100,changes:{health:-2},nextAct:'Waiting',
+        nextText:'You stare at the dark ceiling. Count the cracks. Count the hours. Eventually, exhaustion pulls you under. You don\'t remember falling asleep. But you wake up. That\'s what matters.',
+        nextChoices:[{text:'Sleep',changes:{},nextAct:'Sleeping',odds:100}]},
+    {text:'Listen to music on your phone — drown out the thoughts',odds:75,changes:{health:3},nextAct:'Listening to music',
+        fail:{failText:'Your earbud fell out. Music blared for a second. You froze. Nothing happened. But the scare killed the mood.',failChanges:{suspicion:2}},
+        nextText:'You put your earbuds in. Music fills your head. Someone else\'s words. Someone else\'s pain. For a few minutes, you\'re not alone in your head.\n\nYou drift off with the music still playing.',
+        nextChoices:[{text:'Sleep',changes:{},nextAct:'Falling asleep',odds:100}]}
+]);
+
+// ======================== NEW MORNING EVENTS ========================
+
+ev('morningClothes','morning',()=>G.day>=3&&G.suspicion<70,'Morning — The Clothes Argument',
+'You put on shorts today. It\'s hot. You walk to the kitchen and she\'s already there. She looks at you. Stops. "You\'re wearing THAT?"\n\nIt begins.',
+'"She told me I can\'t wear shorts. Then she wore shorts. I pointed it out. She said it\'s different because she\'s a woman. I said that doesn\'t make sense. She said I\'m being difficult."',
+[
+    {text:'"It\'s hot. I\'m wearing shorts." Stand your ground.',odds:35,changes:{suspicion:8},setFlags:['confronted'],nextAct:'Standing your ground',
+        fail:{failText:'"Don\'t TALK back to me! Go change. NOW." She stood in the doorway. Blocking you. You went back to your room and changed.',failChanges:{suspicion:5,health:-5}},
+        nextText:'You say it\'s hot. You\'re wearing shorts. She argues for a minute. You don\'t budge. She huffs and turns back to the stove.\n\nYou won. A small victory. But she\'ll find something else to criticize in ten minutes.',
+        nextChoices:[{text:'Eat breakfast and start the day',changes:{},nextAct:'Starting the day',odds:100}]},
+    {text:'Change to pants. Not worth the fight.',odds:100,changes:{health:-2},nextAct:'Changing clothes',
+        nextText:'You go back to your room. Swap shorts for jeans. You\'re hotter now. But she\'s quiet. Sometimes compliance is the path of least resistance.\n\nYou return to the kitchen. She nods. "Better." You eat in silence.',
+        nextChoices:[{text:'Start the day',changes:{},nextAct:'Starting the day',odds:100}]}
+]);
+
+ev('morningBagCheck','morning',()=>G.invFood>0&&G.suspicion<80,'Morning — She Checks Your Bag',
+'You\'re about to leave your room when you hear her footsteps. She\'s coming. You look at your bag — your stash is in there. Food wrappers. Maybe trash.\n\nShe knocks once and opens the door. No waiting. "What\'s in the bag?"\n\nHer eyes scan your room.',
+'"She checks my bag whenever she wants. No warning. No privacy. I have to be ready every single morning."',
+[
+    {text:'Let her look. Act casual. Nothing to hide.',odds:45,changes:{suspicion:6},nextAct:'Letting her check',
+        fail:{failText:'She pulled out a wrapper you missed. Held it up. "What\'s THIS?" You had no answer. She took it. Now she\'s watching you closer.',failChanges:{suspicion:12,trash:0}},
+        nextText:'You step aside. Let her look. She rummages through your bag. Pulls out your notebook. Flips through it. Puts it back.\n\nNothing incriminating visible. She grunts. "Keep it tidy." She leaves.\n\nYour heart is pounding. That was close.',
+        nextChoices:[{text:'Re-hide your stash deeper',changes:{},nextAct:'Re-hiding',odds:100}]},
+    {text:'Block the bag — "I\'ll pack it myself"',odds:25,changes:{suspicion:10,health:-3},setFlags:['confronted'],nextAct:'Blocking her',
+        fail:{failText:'"MOVE." She pushed past you. Opened the bag. Searched every pocket. Found your stash. "What\'s this?" She took everything.',failChanges:{suspicion:15,invFood:-G.invFood,trash:0}},
+        nextText:'You step in front of your bag. "I can pack my own things." She stares at you. For a long moment, neither of you move.\n\nThen she steps back. "Fine." She leaves. That worked. That actually WORKED.',
+        nextChoices:[{text:'Breathe. That was close.',changes:{},nextAct:'Recovering',odds:100}]},
+    {text:'Hide the bag under your bed before she comes in',odds:60,changes:{suspicion:3},nextAct:'Hiding the bag',
+        fail:{failText:'She saw you shove it. "What are you HIDING?" She pulled it out. Checked it. Found everything.',failChanges:{suspicion:12,invFood:-G.invFood,trash:0}},
+        nextText:'You slide the bag under your bed. She opens the door. Looks around. Doesn\'t see it. "Ready?" "Yeah." She leaves.\n\nYou pull the bag out. That was too close.',
+        nextChoices:[{text:'Re-hide your stash',changes:{},nextAct:'Re-hiding',odds:100}]}
+]);
+
+ev('morningPeaceful','morning',()=>G.day>=5&&Math.random()<0.2,'Morning — A Quiet Morning',
+'You wake up and... it\'s quiet. No shouting. No TV blaring. No footsteps.\n\nYou get up. She\'s sitting on the porch with her coffee. She nods at you. Doesn\'t say anything.\n\nA quiet morning. A rare gift.',
+'"Once in a while, she\'s almost normal. Those days confuse me more than the bad ones."',
+[
+    {text:'Enjoy it. Make yourself breakfast. Peace never lasts.',odds:100,changes:{hunger:15,health:5,ateToday:true},nextAct:'Enjoying the peace',
+        nextText:'You make toast. Eggs. Coffee. Sit at the table alone. Eat slowly. No rush. No tension.\n\nFor twenty minutes, this house feels almost like a home. You know it won\'t last. But you savor it anyway.',
+        nextChoices:[{text:'Start the day',changes:{},nextAct:'Starting the day',odds:100}]},
+    {text:'Stay in your room. Don\'t break the spell.',odds:100,changes:{health:3},nextAct:'Staying in your room',
+        nextText:'You lie in bed. The silence is precious. You don\'t want to risk it by existing too loudly.\n\nEventually she calls you. But the peace lasted longer than usual. You\'ll take the win.',
+        nextChoices:[{text:'Start the day',changes:{},nextAct:'Starting the day',odds:100}]}
+]);
+
+// ======================== NEW AFTERNOON EVENTS ========================
+
+ev('afternoonWalk','afternoon',()=>G.day%3!==0,'Afternoon — Going for a Walk',
+'The house is suffocating. You need air. She\'s in the living room watching TV. You could slip out for a walk. No destination. Just movement.\n\nFresh air is free. And outside, she can\'t reach you.',
+'"Sometimes I just walk. No destination. I walk until I forget where I am. Then I walk back."',
+[
+    {text:'Head to the convenience store — stock up while you\'re out',odds:70,changes:{money:-3,invFood:2},nextAct:'Going to the store',
+        fail:{failText:'She called as you reached the corner. "Where are you GOING?" "Just walking." "Come back." You went back.',failChanges:{suspicion:3}},
+        nextText:'You walk to the store. Grab instant noodles and crackers. Stuff them in your jacket. Pay. Pocket the receipt.\n\nOn the walk back, you feel... normal. Like a regular person buying regular food.',
+        nextChoices:[
+            {text:'Hide the food in your bag when you get home',odds:80,changes:{},nextAct:'Hiding the food',
+                fail:{failText:'She was in the hallway. "What\'s in your jacket?" "Nothing." She didn\'t believe you.',failChanges:{suspicion:5}},
+                nextText:'You slip into your room. Transfer the food to your bag. Stash grows.',
+                nextChoices:[{text:'Rest',changes:{},nextAct:'Resting',odds:100}]}
+        ]},
+    {text:'Just walk. Clear your head. No destination.',odds:100,changes:{health:3},nextAct:'Walking',
+        nextText:'You walk. Past the neighborhood. Past the main road. You keep going until the houses thin out.\n\nYou find a bench. Sit. Watch the clouds. For thirty minutes, you\'re not a survivor. You\'re just a person on a bench.\n\nThen you walk back. The house is still there. She\'s still there. But you\'re a little stronger.',
+        nextChoices:[{text:'Go back inside',changes:{},nextAct:'Going inside',odds:100}]}
+]);
+
+ev('afternoonLibrary','afternoon',()=>G.day>=4,'Afternoon — Library Study Session',
+'The library is quiet. No aunt. No TV. No shouting. Just books and silence.\n\nYou could study here. Really study. Without her interrupting every ten minutes. The library is free. Open to everyone. Even you.',
+'"The library is my real home. Quiet. Safe. No one checks my bag here."',
+[
+    {text:'Study hard — scholarship goals',odds:65,changes:{},setFlags:['scholarship'],nextAct:'Studying at the library',
+        fail:{failText:'You couldn\'t focus. Her voice kept replaying in your head. You stared at the same page for an hour.',failChanges:{health:-2}},
+        nextText:'You find a quiet corner. Open your textbook. The silence is golden.\n\nWithout her interruptions, you fly through chapters. Notes fill your notebook. Concepts click. You feel smart. Capable. Like you could actually escape this life through education.\n\nHours pass. You\'ve learned more in one afternoon than a week at home.',
+        nextChoices:[
+            {text:'Stop by the convenience store on the way home',odds:70,changes:{money:-3,invFood:2},nextAct:'Stopping at the store',
+                fail:{failText:'The library closed late. The store was already shut.',failChanges:{}},
+                nextText:'Quick stop. Noodles and crackers for the stash.',
+                nextChoices:[{text:'Go home',changes:{},nextAct:'Going home',odds:100}]},
+            {text:'Go straight home — good study session',odds:100,changes:{},nextAct:'Going home',
+                nextText:'You pack up. Walk home. The knowledge stays with you.',
+                nextChoices:[{text:'Rest',changes:{},nextAct:'Resting',odds:100}]}
+        ]},
+    {text:'Browse the internet on a library computer — escape',odds:80,changes:{health:2},nextAct:'Browsing the web',
+        fail:{failText:'The computer required a login. You didn\'t have one. You sat there pretending to read.',failChanges:{health:-2}},
+        nextText:'You sit at a computer. Open YouTube. Watch someone living a different life. A life where they don\'t have to hide food.\n\nIt\'s escape. Pure escape. For a couple hours, you\'re not here.',
+        nextChoices:[{text:'Log off and go home',changes:{},nextAct:'Going home',odds:100}]}
+]);
+
+// ======================== NEW EVENING EVENTS ========================
+
+ev('eveningMoney','evening',()=>G.day>=7&&G.suspicion<60,'Evening — She Brings Up Money',
+'You\'re in your room when she calls you to the living room. She\'s sitting with a calculator. Bills spread on the table. "We need to talk about money."\n\nYour heart sinks. You don\'t have money. You have $'+Math.round(G.money)+' to your name.\n\n"When you get a job, you\'ll pay me back. For everything. The roof over your head. The food. The electricity." She says it like she\'s been keeping receipts.',
+'"She talks about money like I owe her for existing. Like being born was a debt I need to repay."',
+[
+    {text:'Nod and agree. "I\'ll pay you back." Avoid the fight.',odds:100,changes:{money:-5,health:-2},nextAct:'Agreeing',
+        nextText:'You nod. Say what she wants to hear. She smiles. "Good. I\'m glad we understand each other."\n\nYou go back to your room. Subtract from your savings mentally. You\'ll need to save even more to leave this place.',
+        nextChoices:[{text:'Wind down',changes:{},nextAct:'Winding down',odds:100}]},
+    {text:'"I don\'t owe you anything. You chose to take me in."',odds:15,changes:{suspicion:15,health:-5},setFlags:['confronted'],nextAct:'Standing up to her',
+        fail:{failText:'"UNGREATEFUL! After EVERYTHING I\'VE DONE!" She screamed for twenty minutes. Then she took $20 from your wallet. "For the attitude."',failChanges:{suspicion:10,money:-20,health:-8}},
+        nextText:'You say it. She stares. For a moment, silence. Then she launches into a tirade. You sit there and take it.\n\nBut you said it. You said the truth out loud. She can\'t take that away.',
+        nextChoices:[{text:'Go to your room',changes:{},nextAct:'Going to your room',odds:100}]}
+]);
+
+ev('eveningRacism','evening',()=>G.day>=4,'Evening — She Says Something',
+'Dinner is almost over. She\'s in one of her moods. Talking about the news. About people. The words start casual but you know where this is going.\n\nShe says something. Something about "those people." About how "they\'re different." She looks at you, expecting agreement.',
+'"She says things. Casual. Like it\'s normal. Like everyone thinks this way. And she expects me to nod along."',
+[
+    {text:'Say nothing. Stare at your plate. Don\'t engage.',odds:100,changes:{health:-3},nextAct:'Staying silent',
+        nextText:'You look at your plate. Push food around. Don\'t respond. She keeps talking. Doesn\'t notice your silence. Or doesn\'t care.\n\nThe words sit in the air. Heavy. Wrong. You say nothing. But inside, you\'re screaming.',
+        nextChoices:[{text:'Finish dinner and leave',changes:{},nextAct:'Leaving the table',odds:100}]},
+    {text:'"That\'s not true." Challenge it.',odds:10,changes:{suspicion:15,health:-5},setFlags:['confronted','truthOut'],nextAct:'Challenging her',
+        fail:{failText:'"Oh, now YOU\'RE gonna lecture ME? I\'ve been alive longer than you! I KNOW how the world works!" She turned the TV up. Drowning you out. You sat there, invisible.',failChanges:{suspicion:10,health:-8}},
+        nextText:'You say it. Quietly. "That\'s not true. That\'s not how people work."\n\nShe stops. Looks at you. For a second, you see something flicker in her eyes. Doubt? Shame? Then it\'s gone. "Eat your dinner."\n\nYou did what you could. You said something. That\'s more than most do.',
+        nextChoices:[{text:'Finish dinner',changes:{},nextAct:'Finishing dinner',odds:100}]}
+]);
+
+// ======================== NEW SPECIAL EVENTS ========================
+
+ev('specialRats','night',()=>G.trash>=3,'Night — The Smell',
+'There\'s a smell in your room. You notice it when you lie down. It\'s faint but unmistakable. Old food. Rotting. The trash you\'ve been hiding is starting to attract attention.\n\nYou hear a scratching sound. From under your bed.',
+'"The trash is piling up. I can smell it. If I can smell it, she\'ll smell it soon."',
+[
+    {text:'Take the trash outside now — emergency disposal',odds:40,changes:{trash:0,suspicion:8},nextAct:'Emergency disposal',
+        fail:{failText:'You grabbed the trash bag. Something fell out. You spent ten minutes cleaning the floor in the dark. The smell is still there.',failChanges:{suspicion:6}},
+        nextText:'You grab all the hidden trash. Wrap it in a plastic bag. Unlock the front door. Step outside.\n\nThe cold air hits you. You dump everything in the outside bin. The smell lifts. You go back inside. Clean. Safe.\n\nYou need to be more careful.',
+        nextChoices:[{text:'Sleep',changes:{},nextAct:'Going to sleep',odds:100}]},
+    {text:'Relocate the trash to a better hiding spot',odds:60,changes:{health:-2},nextAct:'Relocating trash',
+        fail:{failText:'You moved the trash. But the smell stuck to your hands. You washed them three times. Still smells.',failChanges:{health:-3}},
+        nextText:'You gather the trash and move it to a new spot. Behind the desk. Tighter. More sealed. The scratching stops.\n\nTemporary fix. You need to dispose of it soon.',
+        nextChoices:[{text:'Sleep',changes:{},nextAct:'Going to sleep',odds:100}]},
+    {text:'Ignore it. It\'s probably nothing.',odds:100,changes:{health:-3},nextAct:'Ignoring it',
+        nextText:'You pull the covers over your head. The smell is there. The scratching is there. But you\'re tired. Too tired to deal with it.\n\nYou fall asleep hoping it\'ll be gone tomorrow. It won\'t be.',
+        nextChoices:[{text:'Sleep',changes:{},nextAct:'Sleeping',odds:100}]}
+]);
+
+ev('specialAuntFoundStash','evening',()=>G.invFood>=3,'Evening — She Found Your Stash',
+'You come back to your room and the drawer is open. Your bag is on the floor. Contents spilled.\n\nShe found it. Your stash. All of it. The noodles. The crackers. Everything you bought and hid.\n\nShe\'s standing in the hallway holding a pack of instant noodles. "What\'s THIS?"',
+'"She found my stash. Everything I worked for. Gone."',
+[
+    {text:'"I bought it with my own money. It\'s mine." Stand firm.',odds:20,changes:{suspicion:15,health:-5,invFood:-G.invFood},setFlags:['confronted'],nextAct:'Standing firm',
+        fail:{failText:'"Your MONEY?! I feed you! I clothe you! You don\'t NEED to buy food! You\'re HIDING it from me?!" She threw the noodles at you. One hit your face. She walked away with the rest.',failChanges:{suspicion:12,health:-8,invFood:-G.invFood}},
+        nextText:'You say it. She stares. For a moment, nothing. Then she drops the noodles on the floor. "Fine. Keep your secrets." She walks away.\n\nYou pick up your stash. It\'s still yours. But now she knows. The game has changed.',
+        nextChoices:[{text:'Re-hide everything',changes:{},nextAct:'Re-hiding',odds:100}]},
+    {text:'Say nothing. Take the loss. She wins this round.',odds:100,changes:{health:-5,invFood:-G.invFood},nextAct:'Taking the loss',
+        nextText:'She takes everything. Your noodles. Your crackers. Your snacks. All of it. "I\'ll dispose of this."\n\nShe leaves. You sit on your empty bed. The stash is gone. Weeks of careful hiding. Wiped out.\n\nYou want to cry. But you\'ve learned not to. You just sit there, hollow.',
+        nextChoices:[{text:'Lie down',changes:{},nextAct:'Lying down',odds:100}]}
+]);
+
+// ======================== AFTERNOON FREE TIME ========================
+
+ev('afternoonLazy','afternoon',null,'Afternoon — Nothing to Do',
+'She\'s busy on the phone. Distracted. For once, she\'s not watching you. The afternoon stretches ahead. Free time you didn\'t expect.\n\nWhat do you do with this unguarded time?',
+'"Unguarded time is the most precious resource in this house."',
+[
+    {text:'Eat from your stash — she won\'t notice right now',odds:60,changes:{invFood:-1,hunger:15},trash:1,nextAct:'Eating from stash',
+        fail:{failText:'You reached for your bag. She called your name. "What are you doing?" "Nothing." You pulled your hand back.',failChanges:{suspicion:3}},
+        nextText:'She\'s distracted. This is your chance. You grab something from your stash. Eat quickly. Hide the wrapper.\n\nA successful snack raid in broad daylight. Risky but worth it.',
+        nextChoices:[
+            {text:'Hide the wrapper in your closet',odds:75,changes:{},trashSpot:'inCloset',trash:1,nextAct:'Hiding the wrapper',
+                nextText:'You stuff the wrapper deep in your closet.',
+                nextChoices:[{text:'Rest',changes:{},nextAct:'Resting',odds:100}]},
+            {text:'Hide it behind the desk',odds:80,changes:{},trashSpot:'behindDesk',trash:1,nextAct:'Hiding the wrapper',
+                nextText:'You wedge it behind your desk. Invisible.',
+                nextChoices:[{text:'Rest',changes:{},nextAct:'Resting',odds:100}]}
+        ]},
+    {text:'Nap — recover some energy',odds:80,changes:{health:4},nextAct:'Napping',
+        nextText:'You lie down. Close your eyes. She\'s on the phone. The sound is background noise. You drift off.\n\nPower nap. Twenty minutes. You wake up feeling human again.',
+        nextChoices:[{text:'Rest',changes:{},nextAct:'Resting',odds:100}]},
+    {text:'Organize your hiding spots — stay prepared',odds:90,changes:{},nextAct:'Organizing',
+        nextText:'You check your stash. Count your food. Check your trash spots. Rearrange things. Make sure everything is secure.\n\nPreparation is survival. You\'re ready for whatever comes next.',
+        nextChoices:[{text:'Rest',changes:{},nextAct:'Resting',odds:100}]}
+]);
+
+console.log('Hidden Hunger v6 loaded. Events: '+EV.length+', Endings: '+END.length);
+</script>
+</body>
+</html>
