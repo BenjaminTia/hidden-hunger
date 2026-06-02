@@ -8,7 +8,7 @@ A narrative-driven decision survival game built as a single-page HTML applicatio
 
 ## Overview
 
-You live with your aunt and father. Every day is a battle — for food, for privacy, for your sanity. Your aunt controls everything you eat, wear, and do. Your father won't stand up for you. The only peace you get is at night, when she's finally asleep.
+You live with your aunt. Every day is a battle — for food, for privacy, for your sanity. She controls everything you eat, wear, and do. The only peace you get is at night, when she's finally asleep.
 
 Manage your stats, hide your food, dispose of evidence, and find a way out before she breaks you completely.
 

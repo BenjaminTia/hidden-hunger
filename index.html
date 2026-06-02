@@ -73,8 +73,8 @@ body{background:#07070a;color:#c8c8d0;font-family:'Inter',sans-serif;height:100v
 This is a work of fiction. Names, characters, places, and incidents are either products of the imagination or used fictitiously. Any resemblance to actual persons, living or dead, events, or locales is entirely coincidental. The story explores themes of family dysfunction, manipulation, and survival. Reader discretion is advised.
 </div>
 <div class="context">
-<em>You live with your aunt and father. Every day is a battle — for food, for privacy, for your sanity.</em><br><br>
-Your aunt controls everything you eat, wear, and do. Your father won't stand up for you. The only peace you get is at night, when she's finally asleep.<br><br>
+<em>You live with your aunt. Every day is a battle — for food, for privacy, for your sanity.</em><br><br>
+Your aunt controls everything you eat, wear, and do. The only peace you get is at night, when she's finally asleep.<br><br>
 Hide your food. Manage your trash. Stay out of her way. Find a way out before she breaks you completely.
 </div>
 <button class="start" onclick="startGame()">Enter the House</button>
@@ -668,19 +668,7 @@ ev('specialCheck','afternoon',()=>G.day>=2&&G.suspicion<70,'She Went Through You
         nextChoices:[{text:'Rest',changes:{},nextAct:'Resting',odds:100}]}
 ]);
 
-ev('specialDad','afternoon',()=>G.day>=7,'Your Dad Visits',
-'Your dad is here. He\'s in the living room with your aunt. They\'re talking. Laughing. About you.\n\nHe knows how she treats you. He\'s seen it. But when she\'s around, he becomes a different person. He laughs at her jokes. He agrees with her complaints. He\'s a coward when she\'s in the room.',
-'"My dad hates her. I know he does. But he laughs with her. At me. He\'s a different person around her. Weak."',
-[
-    {text:'Stay in your room. Don\'t engage.',odds:80,changes:{},nextAct:'Staying in your room',
-        fail:{failText:'She called you. "Your dad is HERE! Come say HELLO!" Forced. Always forced.',failChanges:{health:-2}},
-        nextText:'You stay in your room. They laugh in the other room. You put headphones on. Drown them out. You don\'t need to be part of their dynamic.\n\nHe\'ll leave eventually. He always does.',
-        nextChoices:[{text:'Wait',changes:{},nextAct:'Waiting',odds:100}]},
-    {text:'Find him alone. Talk to him.',odds:35,changes:{},setFlags:['truthOut'],nextAct:'Talking to your dad',
-        fail:{failText:'"Don\'t be so sensitive. That\'s just how she is. You know how she is." He dismissed you. Like always. He doesn\'t get it. He doesn\'t WANT to get it.',failChanges:{health:-6}},
-        nextText:'You catch him in the kitchen. Alone. "Why do you laugh at her jokes about me?" He looks uncomfortable. "I\'m not laughing AT you. I\'m laughing to keep peace." "Same thing."\n\nHe has no answer. You walk away. At least you said it.',
-        nextChoices:[{text:'Go back to your room',changes:{},nextAct:'Going back',odds:100}]}
-]);
+
 
 // ======================== GRIM ENDING TRIGGERS ========================
 
