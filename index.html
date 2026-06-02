@@ -78,7 +78,7 @@ Your aunt controls everything you eat, wear, and do. The only peace you get is a
 Hide your food. Manage your trash. Stay out of her way. Find a way out before she breaks you completely.
 </div>
 <button class="start" onclick="startGame()">Enter the House</button>
-<div class="endings"><strong>24 endings</strong> &middot; <strong>22 events</strong> &middot; Single-file HTML</div>
+<div class="endings"><strong>21 endings</strong> &middot; <strong>22 events</strong> &middot; Single-file HTML</div>
 </div>
 <div id="top"><span class="day" id="dayD">Day 1</span><span class="time" id="timeD">Night</span><span class="act" id="actD"></span></div>
 <div id="stats">
@@ -135,13 +135,9 @@ const END = [
     { id:11, name:'Survived 100 Days', check:()=>G.day>=100, text:'100 days. Not thriving. Not happy. But alive. Every day you survived her. That counts for something. That counts for everything.' },
     { id:12, name:'Self-Sufficient', check:()=>G.flags.selfSufficient, text:'You learned to cook. Really cook. Better than she ever could. The day you made a meal from scratch and didn\'t need her, you were free.' },
     { id:13, name:'The Truth Out', check:()=>G.flags.truthOut, text:'You recorded everything. The shouting. The gaslighting. The contradictions. You released it all. The internet saw. The world saw. She couldn\'t deny it anymore.' },
-    { id:14, name:'New Family', check:()=>G.flags.foundFamily, text:'Not blood. But better. A friend\'s family took you in. They didn\'t check your bag. They didn\'t leave your door open. They called you their kid.' },
-    { id:15, name:'Peace at Last', check:()=>G.day>=60&&G.hunger>60&&G.health>60, text:'You found a rhythm. A way to live around her. Not war, not happiness — but peace. Some days that\'s enough.' },
-    { id:16, name:'Therapy Journey', check:()=>G.flags.therapy, text:'You started therapy. Unpacking years of gaslighting. The therapist said, "That\'s abuse." You cried when you heard it spoken out loud.' },
-    { id:17, name:'Confrontation', check:()=>G.flags.confronted, text:'You said everything. All of it. She had no answer. For once, she was silent. You walked away and left her standing there, mouth open.' },
-    { id:18, name:'Friends Saved Me', check:()=>G.flags.friendsHelp, text:'Your friends knew something was wrong. They showed up. They didn\'t ask permission. They got you out. Real family is chosen.' },
-    { id:19, name:'The Door Closes', check:()=>G.flags.movedOut, text:'You walked out with your bags. She watched from the doorway. She didn\'t say goodbye. You didn\'t look back. The door closed behind you.' },
-    { id:20, name:'Internet Famous', check:()=>G.flags.contentCreator, text:'Your videos about surviving a toxic home went viral. Millions watched. Thousands reached out. You weren\'t alone. You were never alone.' },
+    { id:14, name:'Peace at Last', check:()=>G.day>=60&&G.hunger>60&&G.health>60, text:'You found a rhythm. A way to live around her. Not war, not happiness — but peace. Some days that\'s enough.' },
+    { id:15, name:'Therapy Journey', check:()=>G.flags.therapy, text:'You started therapy. Unpacking years of gaslighting. The therapist said, "That\'s abuse." You cried when you heard it spoken out loud.' },
+    { id:16, name:'Confrontation', check:()=>G.flags.confronted, text:'You said everything. All of it. She had no answer. For once, she was silent. You walked away and left her standing there, mouth open.' },
     { id:21, name:'The Act — Caught', check:()=>G.flags.killedAuntCaught, text:'You snapped. One night, you couldn\'t take anymore. The police came. The handcuffs were cold. In the cell, you felt nothing. Not regret. Not relief. Just... nothing.' },
     { id:22, name:'The Act — Freedom', check:()=>G.flags.killedAuntFree, text:'You snapped. One night, you ended it. You walked out. No one saw. No one knows. You changed your name. Started over. But some nights, you still hear her voice.' },
     { id:23, name:'Self-Defense', check:()=>G.flags.selfDefense, text:'She came at you. Really came at you. You reacted. The law called it self-defense. You\'re free but you carry it with you every day. She made you into this.' },
@@ -441,7 +437,11 @@ ev('nightKitchen','night',null,'Night — The House is Quiet',
         ]},
     {text:'Stay in bed. Too risky. Hunger is safer than getting caught.',odds:100,changes:{hunger:-5},nextAct:'Staying in bed',
         nextText:'You stay in bed. Your stomach twists and aches. But you\'re safe. No one caught you. No trash to hide. You close your eyes and wait for sleep to take the hunger away.\n\nIt doesn\'t. Not really. But you survive the night.',
-        nextChoices:[{text:'Sleep',changes:{},nextAct:'Falling asleep',odds:100}]}
+        nextChoices:[{text:'Sleep',changes:{},nextAct:'Falling asleep',odds:100}]},
+    {text:'Leave tonight. Just go. Never come back.',odds:30,changes:{},nextAct:'Running away',
+        fail:{failText:'You made it to the front door. Your hand touched the handle. Then you froze. Where would you even go? You went back to bed.',failChanges:{health:-3}},
+        nextText:'You get dressed in the dark. No bag. No noise. Just you and the clothes on your back.\n\nThe front door. The same door you\'ve passed a thousand times. This time, you open it.\n\nCold air hits your face. The street is empty. The world is dark and wide open.\n\nYou step out. And keep walking. No note. No goodbye.',
+        nextChoices:[{text:'Walk into the night',changes:{},setFlags:['runaway'],odds:100}]}
 ]);
 
 // ======================== MORNING ========================
@@ -646,7 +646,11 @@ ev('eveningFree','evening',null,'Evening — Free Time',
         nextChoices:[
             {text:'Push harder — one more set',odds:60,changes:{strength:1},fail:{failText:'She knocked. "What ARE you doing in there?" "Nothing." You stopped.',failChanges:{suspicion:3}},nextText:'You push through another set. Burning. Good.',nextChoices:[{text:'Wind down',changes:{},nextAct:'Winding down',odds:100}]},
             {text:'Cool down — stretch',odds:90,changes:{health:2},nextText:'You stretch. Flexibility. Calm. Your body thanks you.',nextChoices:[{text:'Wind down',changes:{},nextAct:'Winding down',odds:100}]}
-        ]}
+        ]},
+    {text:'Pack your bag. You have enough. Leave now.',odds:60,changes:{},setFlags:['movedOut'],nextAct:'Leaving for good',
+        fail:{failText:'You grabbed your bag. Got to the door. Then she called your name from the living room. "Where are you going?" "Nowhere." You went back to your room. Not tonight.',failChanges:{health:-3}},
+        nextText:'You pack your bag. Everything you own fits in one bag. That\'s how it\'s always been.\n\nYou walk to the front door. She\'s in the living room, watching TV. Her back is to you.\n\nYou open the door. Step through. Close it quietly behind you.\n\nThe door clicks shut. You\'re on the porch. The night air fills your lungs.\n\nShe didn\'t say goodbye. Neither did you. The door is closed.',
+        nextChoices:[{text:'Walk away',changes:{},odds:100}]}
 ]);
 
 // ======================== SPECIAL EVENTS ========================
@@ -668,7 +672,15 @@ ev('specialCheck','afternoon',()=>G.day>=2&&G.suspicion<70,'She Went Through You
         nextChoices:[{text:'Rest',changes:{},nextAct:'Resting',odds:100}]}
 ]);
 
+// ======================== AUNT ARRESTED ========================
 
+ev('specialArrest','morning',()=>G.flags.detective&&G.flags.truthOut,'Morning — They Came for Her',
+'The doorbell rings. Early. Too early for visitors.\n\nYou hear her answer the door. Voices. Adult voices. Calm. Official.\n\nShe calls your name. Her voice is different. Flat. Scared.\n\nYou walk to the living room. Two officers stand there. One holds a folder. Your folder. The one you\'ve been building. The journal entries. The recordings. The timeline.\n\nSomeone submitted it. Someone believed you.',
+'"I don\'t know who sent the evidence. A teacher. A librarian. Someone from a number I called. It doesn\'t matter. Someone finally did something."',
+[
+    {text:'Watch them take her',odds:100,changes:{},setFlags:['auntArrested'],ending:'Aunt Arrested',
+        result:'The evidence was enough. They came for her. You watched from the window as they led her away. Justice took years but it came.'}
+]);
 
 // ======================== GRIM ENDING TRIGGERS ========================
 
@@ -850,7 +862,11 @@ ev('afternoonLibrary','afternoon',()=>G.day>=4,'Afternoon — Library Study Sess
     {text:'Browse the internet on a library computer — escape',odds:80,changes:{health:2},nextAct:'Browsing the web',
         fail:{failText:'The computer required a login. You didn\'t have one. You sat there pretending to read.',failChanges:{health:-2}},
         nextText:'You sit at a computer. Open YouTube. Watch someone living a different life. A life where they don\'t have to hide food.\n\nIt\'s escape. Pure escape. For a couple hours, you\'re not here.',
-        nextChoices:[{text:'Log off and go home',changes:{},nextAct:'Going home',odds:100}]}
+        nextChoices:[{text:'Log off and go home',changes:{},nextAct:'Going home',odds:100}]},
+    {text:'Talk to the librarian — she seems like she cares',odds:35,changes:{},setFlags:['someoneHelped'],nextAct:'Talking to the librarian',
+        fail:{failText:'She was busy with other patrons. You sat back down. Maybe another day.',failChanges:{}},
+        nextText:'You approach the front desk. The librarian looks up. Smiles. "Can I help you find something?"\n\nYou ask for book recommendations. She chats with you for a few minutes. Normal. Kind. No strings attached.\n\nBefore you leave, she hands you a card. "If you ever need someone to talk to, here\'s a number. A counselor. Free. Confidential."\n\nYou pocket the card. Someone noticed. Someone cares.',
+        nextChoices:[{text:'Go home',changes:{},nextAct:'Going home',odds:100}]}
 ]);
 
 // ======================== NEW EVENING EVENTS ========================

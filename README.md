@@ -48,13 +48,12 @@ Manage your stats, hide your food, dispose of evidence, and find a way out befor
 
 ## Endings
 
-24 endings across multiple categories:
+21 endings across multiple categories:
 
 - **Death endings** — Starvation, bladder infection, broken body
-- **Escape endings** — Runaway, scholarship, independent, moved out
-- **Justice endings** — Aunt arrested, truth out, someone believed
+- **Escape endings** — Runaway, scholarship, independent, the door closes
+- **Justice endings** — Aunt arrested, truth out, someone believed, cast out
 - **Growth endings** — Strong enough, self-sufficient, therapy journey
-- **Connection endings** — New family, friends saved me, someone believed
 - **Grim endings** — The Act (caught, freedom, cover-up, self-defense)
 - **Peace endings** — Survived 100 days, peace at last, confrontation
 
